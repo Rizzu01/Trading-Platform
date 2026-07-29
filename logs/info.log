@@ -1,0 +1,3 @@
+2026-07-28 12:45:06,328 | INFO | TradingPlatform | main.py:43 | Test info log
+2026-07-28 12:45:06,329 | WARNING | TradingPlatform | main.py:45 | Test warning
+2026-07-28 12:45:06,330 | ERROR | TradingPlatform | main.py:47 | Test error

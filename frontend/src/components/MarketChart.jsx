@@ -119,120 +119,24 @@ export default function MarketChart({
 
     resizeObserver.observe(containerRef.current);
 
-    return () => {
-      resizeObserver.disconnect();
-      chart.timeScale().unsubscribeVisibleLogicalRangeChange(rangeListener);
-      chart.remove();
-      chartRef.current = null;
-      candleSeriesRef.current = null;
-      volumeSeriesRef.current = null;
-      hasFittedRef.current = false;
-      followRealtimeRef.current = true;
-      dataLengthRef.current = 0;
-    };
-  }, [theme]);
-
-  useEffect(() => {
-    if (!chartRef.current || !candleSeriesRef.current || !volumeSeriesRef.current) return;
-
-    const valid = candles
-      .map((item) => ({
-        time: Math.floor(Number(item.timestamp) / 1000),
-        open: Number(item.open),
-        high: Number(item.high),
-        low: Number(item.low),
-        close: Number(item.close),
-      }))
-      .filter(
-        (item) =>
-          Number.isFinite(item.time) &&
-          Number.isFinite(item.open) &&
-          Number.isFinite(item.high) &&
-          Number.isFinite(item.low) &&
-          Number.isFinite(item.close)
-      )
-      .sort((a, b) => a.time - b.time);
-
-    const unique = [];
-    for (const item of valid) {
-      const last = unique[unique.length - 1];
-      if (last && last.time === item.time) unique[unique.length - 1] = item;
-      else unique.push(item);
-    }
-
-    const volume = unique.map((item) => {
-      const source = candles.find(
-        (candle) => Math.floor(Number(candle.timestamp) / 1000) === item.time
-      );
-      return {
-        time: item.time,
-        value: Math.max(Number(source?.volume || 0), 0),
-      };
-    });
-
-    if (!unique.length) {
-      hasFittedRef.current = false;
-      dataLengthRef.current = 0;
-      return;
-    }
-
-    if (dataLengthRef.current > 0) {
-      const range = chartRef.current.timeScale().getVisibleLogicalRange();
-      if (range) {
-        followRealtimeRef.current = range.to >= dataLengthRef.current - 4;
-      }
-    }
-
-    candleSeriesRef.current.setData(unique);
-    volumeSeriesRef.current.setData(
-      volume.map((item, index) => ({
-        ...item,
-        color: unique[index].close >= unique[index].open
-          ? getComputedStyle(document.documentElement).getPropertyValue("--chart-volume-up").trim()
-          : getComputedStyle(document.documentElement).getPropertyValue("--chart-volume-down").trim(),
-      }))
-    );
-
-    if (!hasFittedRef.current) {
-      chartRef.current.timeScale().fitContent();
-      hasFittedRef.current = true;
-      followRealtimeRef.current = true;
-    } else if (followRealtimeRef.current) {
-      chartRef.current.timeScale().scrollToRealTime();
-    }
-
-    dataLengthRef.current = unique.length;
-  }, [candles]);
-
-  return (
-    <div className="real-chart-shell">
-      <div className="real-chart-header">
-        <div className="real-chart-symbol">
-          <strong>{symbol}</strong>
-          <span>Public market feed</span>
+    return (
+    <div className="market-chart">
+      <div ref={containerRef} className="real-chart-canvas" />
+      {loading && !candles.length && <div className="chart-state">Loading live candles…</div>}
+      {!loading && error && !candles.length && (
+        <div className="chart-state error">
+          <strong>Market data unavailable</strong>
+          <span>{error}</span>
         </div>
-        <div className="real-chart-status">
-          <i className={connected ? "live-dot live" : "live-dot"} />
-          <span>{connected ? "Live" : loading ? "Loading" : error ? "Unavailable" : "Reconnecting"}</span>
-        </div>
+      )}
+      <div className="chart-live-status">
+        <i className={connected ? "live-dot live" : "live-dot"} />
+        <span>{connected ? "Live" : loading ? "Loading" : error ? "Unavailable" : "Reconnecting"}</span>
       </div>
-
-      <div className="real-chart-canvas-wrap">
-        <div ref={containerRef} className="real-chart-canvas" />
-        {loading && !candles.length && <div className="chart-state">Loading live candles…</div>}
-        {!loading && error && !candles.length && (
-          <div className="chart-state error">
-            <strong>Market data unavailable</strong>
-            <span>{error}</span>
-          </div>
-        )}
-        <div className="tradingview-attribution">
-          Charts by{" "}
-          <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">
-            TradingView
-          </a>
-        </div>
+      <div className="tradingview-attribution">
+        Charts by{" "}
+        <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">TradingView</a>
       </div>
     </div>
-  );
+  )
 }

@@ -191,6 +191,12 @@ class ExchangeService:
         return create_exchange(**credentials)
 
     @staticmethod
+    def _normalize_symbol(symbol: str) -> str:
+        value = symbol.strip().upper()
+        if "/" not in value and value.endswith("USDT"):
+            return value[:-4] + "/USDT"
+        return value
+    @staticmethod
     def get_balance(db: Session, user_id: UUID, exchange_id: UUID):
         client = ExchangeService._client(db, user_id, exchange_id)
         return {"success": True, "balances": ExchangeService._call_exchange(client.get_balance)}
@@ -198,6 +204,7 @@ class ExchangeService:
     @staticmethod
     def get_ticker(db: Session, user_id: UUID, exchange_id: UUID, symbol: str):
         client = ExchangeService._client(db, user_id, exchange_id)
+        symbol = ExchangeService._normalize_symbol(symbol)
         ticker = ExchangeService._call_exchange(lambda: client.get_ticker(symbol))
         return {
             "symbol": ticker.get("symbol", symbol.upper()),
@@ -223,6 +230,7 @@ class ExchangeService:
             raise BadRequestException("limit must be between 1 and 500")
 
         client = ExchangeService._client(db, user_id, exchange_id)
+        symbol = ExchangeService._normalize_symbol(symbol)
         candles = ExchangeService._call_exchange(
             lambda: client.get_ohlcv(symbol, timeframe=timeframe, limit=limit)
         )
@@ -274,6 +282,7 @@ class ExchangeService:
         if not hasattr(client, "set_leverage"):
             raise NotSupportedException("Leverage is not supported by this exchange adapter.")
 
+        symbol = ExchangeService._normalize_symbol(symbol)
         return {
             "success": True,
             "result": ExchangeService._call_exchange(lambda: client.set_leverage(symbol, leverage)),

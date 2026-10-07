@@ -90,7 +90,12 @@ function App() {
     try {
       const response = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Authentication failed");
+      if (!response.ok) {
+        const validationMessage = Array.isArray(data.errors) && data.errors.length
+          ? data.errors.map((item) => item.msg || item.message).filter(Boolean).join(", ")
+          : "";
+        throw new Error(data.message || data.detail || validationMessage || "Authentication failed");
+      }
       if (authMode === "login") {
         localStorage.setItem("access_token", data.access_token);
         localStorage.setItem("refresh_token", data.refresh_token);

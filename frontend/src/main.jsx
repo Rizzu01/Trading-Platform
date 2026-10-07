@@ -16,6 +16,16 @@ function App() {
   const [ticker, setTicker] = useState(null);
   const [connected, setConnected] = useState(false);
   const [symbol, setSymbol] = useState("BTC/USDT");
+  const [candles, setCandles] = useState([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${API_BASE}/api/v1/market/ohlcv/${symbol.replace("/", "")}?timeframe=1h&limit=60`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("OHLCV request failed")))
+      .then((data) => setCandles(data.candles || []))
+      .catch(() => setCandles([]));
+    return () => controller.abort();
+  }, [symbol]);
 
   useEffect(() => {
     let socket;
@@ -42,6 +52,19 @@ function App() {
   const high = ticker?.high ?? 68421.90;
   const low = ticker?.low ?? 65903.20;
   const volume = ticker?.volume ?? 2.84e9;
+
+  const chartPoints = useMemo(() => {
+    if (candles.length < 2) return "";
+    const closes = candles.map((candle) => Number(candle.close));
+    const min = Math.min(...closes);
+    const max = Math.max(...closes);
+    const range = max - min || 1;
+    return closes.map((close, index) => {
+      const x = (index / (closes.length - 1)) * 900;
+      const y = 330 - ((close - min) / range) * 300;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+  }, [candles]);
 
   const formattedPrice = useMemo(
     () => Number(price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
@@ -83,7 +106,7 @@ function App() {
           <div className="chart-area">
             <div className="grid" />
             <svg viewBox="0 0 900 360" preserveAspectRatio="none">
-              <polyline points="0,270 60,245 120,260 180,205 240,220 300,170 360,190 420,125 480,155 540,105 600,140 660,92 720,120 780,70 840,94 900,45" />
+              <polyline points={chartPoints || "0,270 60,245 120,260 180,205 240,220 300,170 360,190 420,125 480,155 540,105 600,140 660,92 720,120 780,70 840,94 900,45"} />
             </svg>
             <span className="price-line">${formattedPrice}</span>
           </div>

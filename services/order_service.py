@@ -118,10 +118,11 @@ class OrderService:
     def _client(db: Session, user_id: UUID, exchange_id: UUID):
         credentials = ExchangeService.get_credentials(db, user_id, exchange_id)
         return create_exchange(
-            exchange_name=credentials["exchange"],
+            exchange=credentials["exchange"],
             api_key=credentials["api_key"],
             api_secret=credentials["api_secret"],
             passphrase=credentials["passphrase"],
+            market_type=credentials["market_type"],
         )
 
     @staticmethod

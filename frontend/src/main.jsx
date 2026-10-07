@@ -1095,15 +1095,16 @@ function App() {
       </section>
 
       <section className="bottom panel">
-        <div className="panel-title">
-          <b>Positions & Orders</b>
-          <div className="tabs">
-            <button className={activeTab === "balances" ? "tab active" : "tab"} onClick={() => setActiveTab("balances")}>Balances</button>
-            <button className={activeTab === "open" ? "tab active" : "tab"} onClick={() => setActiveTab("open")}>Open Orders</button>
-            <button className={activeTab === "history" ? "tab active" : "tab"} onClick={() => setActiveTab("history")}>Order History</button>
-            <button className="tab disabled" type="button" disabled title="Trade history is not exposed by the current backend adapter">Trade History</button>
-            {marketType === "usdm" && <button className={activeTab === "positions" ? "tab active" : "tab"} onClick={() => setActiveTab("positions")}>Positions</button>}
+        <div className="account-resize-handle"><span /></div>
+        <div className="account-head">
+          <div className="account-tabs">
+            <button className={activeTab === "balances" ? "tab active" : "tab"} type="button" onClick={() => setActiveTab("balances")}>Balances</button>
+            <button className={activeTab === "open" ? "tab active" : "tab"} type="button" onClick={() => setActiveTab("open")}>Open Orders</button>
+            <button className={activeTab === "history" ? "tab active" : "tab"} type="button" onClick={() => setActiveTab("history")}>Order History</button>
+            <button className="tab" type="button" disabled title="Trade history is not exposed by the current backend adapter">Trade History</button>
+            {marketType === "usdm" && <button className={activeTab === "positions" ? "tab active" : "tab"} type="button" onClick={() => setActiveTab("positions")}>Positions</button>}
           </div>
+          <span className="account-state">{selectedExchangeId ? `${selectedExchange?.exchange_name || "Connected"} · ${selectedExchange?.market_type || "account"}⌄` : "Authentication required  ˅"}</span>
         </div>
         {!selectedExchangeId && (
           <div className="empty"><strong>Connect an exchange</strong><span>Select a connected exchange to load your trading data.</span></div>

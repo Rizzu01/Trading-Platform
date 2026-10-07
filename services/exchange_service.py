@@ -2,7 +2,9 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from core.exceptions import NotFoundException
+import ccxt
+
+from core.exceptions import BadRequestException, NotFoundException
 from exchanges.factory import create_exchange
 from models.exchange import Exchange
 from schemas.exchange import ExchangeCreate, ExchangeUpdate
@@ -12,6 +14,28 @@ from utils.encryption import decrypt, encrypt
 class ExchangeService:
     @staticmethod
     def create(db: Session, user_id: UUID, data: ExchangeCreate) -> Exchange:
+        try:
+            client = create_exchange(
+                exchange=data.exchange_name,
+                api_key=data.api_key,
+                api_secret=data.api_secret,
+                passphrase=data.passphrase,
+                market_type=data.market_type,
+            )
+            client.validate_credentials()
+        except ccxt.AuthenticationError as exc:
+            raise BadRequestException("Exchange authentication failed. Verify the API key, secret, permissions, and market type.") from exc
+        except ccxt.NetworkError as exc:
+            raise BadRequestException("Exchange API is unreachable right now. Please retry.") from exc
+        except ccxt.PermissionDenied as exc:
+            raise BadRequestException("The API key does not have the required trading/account permissions.") from exc
+        except NotImplementedError as exc:
+            raise BadRequestException(str(exc)) from exc
+        except ValueError as exc:
+            raise BadRequestException(str(exc)) from exc
+        except Exception as exc:
+            raise BadRequestException("Exchange verification failed. Check the credentials and selected market type.") from exc
+
         exchange = Exchange(
             user_id=user_id,
             exchange_name=data.exchange_name,
@@ -102,10 +126,14 @@ class ExchangeService:
 
     @staticmethod
     def get_positions(db: Session, user_id: UUID, exchange_id: UUID):
+        exchange = ExchangeService.get(db, user_id, exchange_id)
         client = ExchangeService._client(db, user_id, exchange_id)
+        if exchange.market_type == "spot":
+            return {"success": True, "positions": [], "supported": False, "message": "Positions are only available for futures accounts."}
         if not hasattr(client, "get_positions"):
-            raise NotImplementedError("Positions are not supported by this exchange adapter.")
-        return {"success": True, "positions": client.get_positions()}
+            from core.exceptions import NotSupportedException
+            raise NotSupportedException("Positions are not supported by this exchange adapter.")
+        return {"success": True, "positions": client.get_positions(), "supported": True}
 
     @staticmethod
     def set_leverage(db: Session, user_id: UUID, exchange_id: UUID, symbol: str, leverage: int):
@@ -113,7 +141,8 @@ class ExchangeService:
             raise ValueError("Leverage must be between 1 and 125.")
         client = ExchangeService._client(db, user_id, exchange_id)
         if not hasattr(client, "set_leverage"):
-            raise NotImplementedError("Leverage is not supported by this exchange adapter.")
+            from core.exceptions import NotSupportedException
+            raise NotSupportedException("Leverage is not supported by this exchange adapter.")
         if "/" not in symbol and symbol.upper().endswith("USDT"):
             symbol = symbol[:-4] + "/USDT"
         return {"success": True, "result": client.set_leverage(symbol.upper(), leverage)}

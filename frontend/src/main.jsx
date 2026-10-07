@@ -27,6 +27,13 @@ function App() {
   const [authPassword, setAuthPassword] = useState("");
   const [authName, setAuthName] = useState("");
   const [authMessage, setAuthMessage] = useState("");
+  const [exchangeOpen, setExchangeOpen] = useState(false);
+  const [exchanges, setExchanges] = useState([]);
+  const [exchangeName, setExchangeName] = useState("binance");
+  const [marketType, setMarketType] = useState("spot");
+  const [apiKey, setApiKey] = useState("");
+  const [apiSecret, setApiSecret] = useState("");
+  const [exchangeMessage, setExchangeMessage] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -75,6 +82,28 @@ function App() {
     } catch (error) { setAuthMessage(error.message); }
   };
 
+  const accessToken = localStorage.getItem("access_token");
+
+  const loadExchanges = async () => {
+    if (!accessToken) { setExchangeMessage("Sign in first to connect an exchange."); return; }
+    const response = await fetch(`${API_BASE}/api/v1/exchange`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!response.ok) { setExchangeMessage("Unable to load connected exchanges."); return; }
+    setExchanges(await response.json());
+  };
+
+  const connectExchange = async () => {
+    if (!accessToken) { setExchangeMessage("Sign in first."); return; }
+    setExchangeMessage("Connecting...");
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/exchange`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ exchange_name: exchangeName, market_type: marketType, api_key: apiKey, api_secret: apiSecret }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Exchange connection failed");
+      setApiKey(""); setApiSecret("");
+      setExchangeMessage("Exchange connected securely.");
+      loadExchanges();
+    } catch (error) { setExchangeMessage(error.message); }
+  };
+
   const price = ticker?.last ?? 67842.10;
   const high = ticker?.high ?? 68421.90;
   const low = ticker?.low ?? 65903.20;
@@ -107,7 +136,7 @@ function App() {
         <div className="brand">TRADE<span>LAB</span></div>
         <div className="search">⌕ Search markets</div>
         <div className="status"><i className={connected ? "online" : ""} /> {connected ? "Live market data" : "Demo market data"}</div>
-        <button className="profile" onClick={() => { setAuthMode("login"); setAuthMessage(""); }}>RK</button>
+        <button className="profile" onClick={() => { setExchangeOpen(true); setExchangeMessage(""); loadExchanges(); }}>RK</button>
       </header>
 
       <section className="marketbar">

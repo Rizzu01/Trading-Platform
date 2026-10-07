@@ -7,17 +7,17 @@ from services.order_service import _normalize_symbol
 
 def test_normalize_symbol_accepts_common_formats():
     assert _normalize_symbol("BTCUSDT") == "BTC/USDT"
-    assert OrderService._normalize_symbol("BTC/USDT") == "BTC/USDT"
+    assert _normalize_symbol("BTC/USDT") == "BTC/USDT"
 
 
 def test_normalize_symbol_rejects_invalid_symbol():
     with pytest.raises(ValueError):
-        OrderService._normalize_symbol("BTC")
+        _normalize_symbol("BTC")
 
 
 def test_normalize_symbol_rejects_empty_symbol():
     with pytest.raises(ValueError):
-        OrderService._normalize_symbol("")
+        _normalize_symbol("")
 
 
 def test_uuid_shape_is_supported():

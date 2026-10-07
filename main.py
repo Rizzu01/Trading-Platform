@@ -1,3 +1,6 @@
+import os
+
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -68,3 +71,8 @@ def test_log():
     logger.warning("Test warning")
     logger.error("Test error")
     return {"message": "Logs generated."}
+
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", str(settings.APP_PORT)))
+    uvicorn.run(app, host=settings.APP_HOST, port=port)

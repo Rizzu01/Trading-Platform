@@ -18,6 +18,12 @@ class BinanceExchange:
             "options": options,
         })
 
+    def _normalize_symbol(self, symbol: str) -> str:
+        value = symbol.strip().upper()
+        if self.market_type == "usdm" and value.endswith("/USDT") and ":" not in value:
+            return f"{value}:USDT"
+        return value
+
     def validate_credentials(self):
         return self.client.fetch_balance()
 
@@ -35,19 +41,21 @@ class BinanceExchange:
         return assets
 
     def get_ticker(self, symbol: str):
-        ticker = self.client.fetch_ticker(symbol)
+        normalized = self._normalize_symbol(symbol)
+        ticker = self.client.fetch_ticker(normalized)
         return {
-            "symbol": symbol,
+            "symbol": ticker.get("symbol", normalized),
             "price": ticker.get("last"),
             "bid": ticker.get("bid"),
             "ask": ticker.get("ask"),
             "high": ticker.get("high"),
             "low": ticker.get("low"),
             "volume": ticker.get("baseVolume"),
+            "timestamp": ticker.get("timestamp"),
         }
 
     def get_ohlcv(self, symbol: str, timeframe: str = "1h", limit: int = 100):
-        return self.client.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+        return self.client.fetch_ohlcv(self._normalize_symbol(symbol), timeframe=timeframe, limit=limit)
 
     def get_positions(self):
         if self.market_type not in {"usdm", "coinm"}:
@@ -55,27 +63,29 @@ class BinanceExchange:
         return self.client.fetch_positions()
 
     def get_open_orders(self, symbol=None):
-        return self.client.fetch_open_orders(symbol)
+        normalized = self._normalize_symbol(symbol) if symbol else None
+        return self.client.fetch_open_orders(normalized)
 
     def get_order_history(self, symbol=None):
-        return self.client.fetch_orders(symbol)
+        normalized = self._normalize_symbol(symbol) if symbol else None
+        return self.client.fetch_orders(normalized)
 
     def market_buy(self, symbol: str, amount: float):
-        return self.client.create_market_buy_order(symbol, amount)
+        return self.client.create_market_buy_order(self._normalize_symbol(symbol), amount)
 
     def market_sell(self, symbol: str, amount: float):
-        return self.client.create_market_sell_order(symbol, amount)
+        return self.client.create_market_sell_order(self._normalize_symbol(symbol), amount)
 
     def limit_buy(self, symbol: str, amount: float, price: float):
-        return self.client.create_limit_buy_order(symbol, amount, price)
+        return self.client.create_limit_buy_order(self._normalize_symbol(symbol), amount, price)
 
     def limit_sell(self, symbol: str, amount: float, price: float):
-        return self.client.create_limit_sell_order(symbol, amount, price)
+        return self.client.create_limit_sell_order(self._normalize_symbol(symbol), amount, price)
 
     def set_leverage(self, symbol: str, leverage: int):
         if self.market_type not in {"usdm", "coinm"}:
             raise NotImplementedError("Leverage is only available for futures markets.")
-        return self.client.set_leverage(leverage, symbol)
+        return self.client.set_leverage(leverage, self._normalize_symbol(symbol))
 
     def cancel_order(self, order_id: str, symbol: str):
-        return self.client.cancel_order(order_id, symbol)
+        return self.client.cancel_order(order_id, self._normalize_symbol(symbol))

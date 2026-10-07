@@ -742,9 +742,9 @@ function App() {
         </label>
         <nav className="topnav" aria-label="Primary navigation">
           <button className="nav-link active">Trade</button>
-          <button className="nav-link">Markets</button>
-          <button className="nav-link">Portfolio</button>
-          <button className="nav-link">Orders</button>
+          <button className="nav-link" type="button" disabled title="Markets page is not implemented yet">Markets</button>
+          <button className="nav-link" type="button" disabled title="Portfolio page is not implemented yet">Portfolio</button>
+          <button className="nav-link" type="button" disabled title="Orders page is not implemented yet">Orders</button>
         </nav>
         <div className="top-actions">
           <div className={`market-connection ${displayedMarketConnection}`}>
@@ -810,8 +810,8 @@ function App() {
             aria-label="Filter markets"
           />
           <div className="market-filter-row">
-            <button className="active">All</button>
-            <button>Favorites</button>
+            <button className="active" type="button">All</button>
+            <button type="button" disabled title="Favorites are not backed by persisted market preferences yet">Favorites</button>
           </div>
           {filteredMarkets.map((item) => {
             const data = marketData[item.symbol.replace("/", "")] || null;

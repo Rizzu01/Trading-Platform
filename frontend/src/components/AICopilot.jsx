@@ -62,14 +62,14 @@ export default function AICopilot({ open, onClose, symbol, marketType, timeframe
     setError("");
     try {
       const params = new URLSearchParams({ symbol, market_type: marketType, timeframe });
-      const response = await fetch(\`\${apiBase}/api/v1/ai/trade-setup?\${params}\`);
+      const response = await fetch(`${apiBase}/api/v1/ai/trade-setup?${params}`);
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || "Trade setup unavailable.");
       setSetup(data);
 
       if (data.direction !== "NO TRADE") {
         setRiskLoading(true);
-        const riskResponse = await fetch(\`\${apiBase}/api/v1/ai/risk\`, {
+        const riskResponse = await fetch(`${apiBase}/api/v1/ai/risk`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

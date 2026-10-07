@@ -15,6 +15,8 @@ const markets = [
 function App() {
   const [ticker, setTicker] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketError, setMarketError] = useState("");
   const [symbol, setSymbol] = useState("BTC/USDT");
   const [candles, setCandles] = useState([]);
   const [timeframe, setTimeframe] = useState("1h");
@@ -48,10 +50,15 @@ function App() {
 
   useEffect(() => {
     const controller = new AbortController();
+    setMarketLoading(true);
+    setMarketError("");
     fetch(`${API_BASE}/api/v1/market/ohlcv/${symbol.replace("/", "")}?timeframe=${timeframe}&limit=60`, { signal: controller.signal })
       .then((response) => response.ok ? response.json() : Promise.reject(new Error("OHLCV request failed")))
       .then((data) => setCandles(data.candles || []))
-      .catch(() => setCandles([]));
+      .catch((error) => {
+      if (error.name !== "AbortError") { setCandles([]); setMarketError(error.message); }
+    })
+    .finally(() => setMarketLoading(false));
     return () => controller.abort();
   }, [symbol, timeframe]);
 
@@ -155,7 +162,6 @@ function App() {
       setAuthMode("login");
       return;
     }
-    if (!accessToken) { setExchangeMessage("Sign in first."); return; }
     setExchangeMessage("Connecting...");
     try {
       const response = await fetch(`${API_BASE}/api/v1/exchange`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ exchange_name: exchangeName, market_type: marketType, api_key: apiKey, api_secret: apiSecret }) });
@@ -264,6 +270,8 @@ function App() {
           </div></div>
           <div className="chart-area">
             <div className="grid" />
+            {marketLoading && <div className="chart-state">Loading {timeframe.toUpperCase()} candles…</div>}
+            {!marketLoading && marketError && <div className="chart-state error">{marketError}</div>}
             <svg viewBox="0 0 900 360" preserveAspectRatio="none">
               <polyline points={chartPoints || "0,270 60,245 120,260 180,205 240,220 300,170 360,190 420,125 480,155 540,105 600,140 660,92 720,120 780,70 840,94 900,45"} />
             </svg>

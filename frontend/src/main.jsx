@@ -34,6 +34,8 @@ function App() {
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
   const [exchangeMessage, setExchangeMessage] = useState("");
+  const [selectedExchangeId, setSelectedExchangeId] = useState(null);
+  const [balance, setBalance] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -83,6 +85,18 @@ function App() {
   };
 
   const accessToken = localStorage.getItem("access_token");
+
+  const loadBalance = async (exchangeId) => {
+    if (!accessToken || !exchangeId) return;
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/exchange/${exchangeId}/balance`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!response.ok) throw new Error("Unable to load balance.");
+      setBalance(await response.json());
+      setSelectedExchangeId(exchangeId);
+    } catch (error) {
+      setExchangeMessage(error.message);
+    }
+  };
 
   const loadExchanges = async () => {
     if (!accessToken) { setExchangeMessage("Sign in first to connect an exchange."); return; }
@@ -174,7 +188,7 @@ function App() {
         <aside className="order panel">
           <div className="panel-title"><b>Order</b><span>Spot</span></div>
           <div className="segmented"><button className={side === "buy" ? "active buy" : ""} onClick={() => setSide("buy")}>Buy</button><button className={side === "sell" ? "active sell" : ""} onClick={() => setSide("sell")}>Sell</button></div>
-          <div className="balance">Available <b>$12,480.32</b></div>
+          <div className="balance">Available <b>{balance?.USDT?.free != null ? `${Number(balance.USDT.free).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Connect exchange"}</b></div>
           <label>Order type<select><option>Limit</option><option>Market</option></select></label>
           <label>Price<input value={Number(price).toFixed(2)} readOnly /></label>
           <label>Amount<input placeholder="0.00 BTC" /></label>

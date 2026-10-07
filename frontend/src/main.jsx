@@ -67,12 +67,12 @@ function App() {
         try {
           const isBackend = base === API_BASE;
           const url = isBackend
-            ? `\${API_BASE}/api/v1/market/ohlcv/${normalizedSymbol}?timeframe=${timeframe}&limit=120`
-            : `\${base}/api/v3/klines?${query.toString()}`;
+            ? `${API_BASE}/api/v1/market/ohlcv/${normalizedSymbol}?timeframe=${timeframe}&limit=120`
+            : `${base}/api/v3/klines?${query.toString()}`;
           const response = await fetch(url, { signal: controller.signal });
 
           if (!response.ok) {
-            lastError = new Error(`Market feed returned \${response.status}`);
+            lastError = new Error(`Market feed returned ${response.status}`);
             continue;
           }
 
@@ -166,7 +166,7 @@ function App() {
     const connectTicker = () => {
       if (disposed) return;
       try {
-        tickerSocket = new WebSocket(`\${BINANCE_STREAM_BASE}/${normalizedSymbol}@ticker`);
+        tickerSocket = new WebSocket(`${BINANCE_STREAM_BASE}/${normalizedSymbol}@ticker`);
         tickerSocket.onopen = () => setConnected(true);
         tickerSocket.onmessage = (event) => {
           try {
@@ -197,10 +197,10 @@ function App() {
     const connectKline = () => {
       if (disposed) return;
       try {
-        klineSocket = new WebSocket(`\${BINANCE_STREAM_BASE}/${normalizedSymbol}@kline_${timeframe}`);
+        klineSocket = new WebSocket(`${BINANCE_STREAM_BASE}/${normalizedSymbol}@kline_${timeframe}`);
         klineSocket.onopen = () => {
           setChartConnected(true);
-          setChartError("");
+          setMarketError("");
         };
         klineSocket.onmessage = (event) => {
           try {

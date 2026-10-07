@@ -4,7 +4,7 @@ const DEFAULT_API = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 function pct(value) {
   if (!Number.isFinite(Number(value))) return "—";
-  return ${Number(value).toFixed(2)}%;
+  return `${Number(value).toFixed(2)}%`;
 }
 
 function formatNumber(value) {
@@ -35,7 +35,7 @@ export default function StrategyLab({
   useEffect(() => {
     if (!open) return;
     setMessage("");
-    fetch(${apiBase}/api/v1/strategies)
+    fetch(`${apiBase}/api/v1/strategies`)
       .then(async (response) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.detail || "Unable to load strategies.");
@@ -62,7 +62,7 @@ export default function StrategyLab({
       timeframe: selected.timeframe,
     });
 
-    fetch(${apiBase}/api/v1/strategies/${selected.id}/signal?${params.toString()})
+    fetch(`${apiBase}/api/v1/strategies/${selected.id}/signal?${params.toString()}`)
       .then(async (response) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.detail || "Signal unavailable.");
@@ -80,7 +80,7 @@ export default function StrategyLab({
     setMessage("");
 
     try {
-      const response = await fetch(${apiBase}/api/v1/strategies/${selected.id}/backtest, {
+      const response = await fetch(`${apiBase}/api/v1/strategies/${selected.id}/backtest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -179,7 +179,7 @@ export default function StrategyLab({
                     </strong>
                   </div>
                   <div className="strategy-signal-metrics">
-                    <div><span>Confidence</span><b>{signal ? ${signal.confidence}/100 : "—"}</b></div>
+                    <div><span>Confidence</span><b>{signal ? `${signal.confidence}/100` : "—"}</b></div>
                     <div><span>ATR stop distance</span><b>{signal?.stop_distance ? formatNumber(signal.stop_distance) : "—"}</b></div>
                     <div><span>Reason</span><b>{signal?.reason || "—"}</b></div>
                   </div>
@@ -202,7 +202,7 @@ export default function StrategyLab({
                       <div><span>Win rate</span><b>{pct(backtest.win_rate_pct)}</b></div>
                       <div><span>Profit factor</span><b>{formatNumber(backtest.profit_factor)}</b></div>
                       <div><span>Trades</span><b>{backtest.trade_count}</b></div>
-                      <div><span>Final equity</span><b>$${formatNumber(backtest.final_equity)}</b></div>
+                      <div><span>Final equity</span><b>${`${formatNumber(backtest.final_equity)}`}</b></div>
                     </div>
                     <small>{backtest.validation?.note}</small>
                   </div>

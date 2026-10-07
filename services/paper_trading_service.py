@@ -84,12 +84,12 @@ class PaperTradingService:
                 account.balance -= margin
                 account.positions[key] = PaperPosition(symbol, position_side, quantity, price, leverage, margin)
             elif existing.side == position_side:
+                if margin > account.balance:
+                    raise ValueError("insufficient paper balance")
                 total = existing.quantity + quantity
                 existing.entry_price = ((existing.entry_price * existing.quantity) + (price * quantity)) / total
                 existing.quantity = total
                 existing.margin += margin
-                if margin > account.balance:
-                    raise ValueError("insufficient paper balance")
                 account.balance -= margin
             else:
                 close_qty = min(quantity, existing.quantity)

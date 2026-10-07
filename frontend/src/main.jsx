@@ -1343,6 +1343,15 @@ function App() {
         apiBase={API_BASE}
       />
 
+      <AICopilot
+        open={aiCopilotOpen}
+        onClose={() => setAiCopilotOpen(false)}
+        symbol={symbol}
+        marketType={marketType === "usdm" ? "usdm" : "spot"}
+        timeframe={timeframe}
+        apiBase={API_BASE}
+      />
+
       {exchangeOpen && (
         <div className="auth-overlay">
           <div className="auth-card exchange-card">

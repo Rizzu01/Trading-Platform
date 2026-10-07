@@ -669,6 +669,10 @@ function App() {
       setOrderMessage("Connect an exchange before placing an order.");
       return;
     }
+    if (marketType === "usdm") {
+      setOrderMessage("Futures market data is live, but futures order execution is not enabled yet.");
+      return;
+    }
     if (orderType === "market" && !priceAvailable) {
       setOrderMessage("Live market price is unavailable. Market order submission is disabled.");
       return;
@@ -703,6 +707,9 @@ function App() {
     setOrderMessage("");
 
     try {
+      if (marketType === "usdm") {
+        throw new Error("Futures market data is live, but futures order execution is not enabled yet.");
+      }
       if (!selectedMarketMatchesMode) {
         throw new Error(`Connect a ${marketType === "usdm" ? "Binance USDT-M Futures" : "Spot"} account for this order panel.`);
       }
@@ -813,7 +820,7 @@ function App() {
 
         <div className="market-price">
           <b>{price == null ? "—" : `$${formattedPrice}`}</b>
-          <small className={marketType === "usdm" ? "down" : (changePercent != null && changePercent >= 0 ? "up" : "down")}>
+          <small className={changePercent != null && changePercent >= 0 ? "up" : "down"}>
             {changePercent == null ? "Unavailable" : `${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%`}
           </small>
         </div>
@@ -914,15 +921,15 @@ function App() {
           </div>
 
           <div className="evidence-note">
-            <b>Reference snapshot · not live</b>
-            <span>USD and INR markets are not supplied by the current adapter.</span>
+            <b>{marketType === "usdm" ? "USDⓈ-M Futures feed" : "Spot feed"}</b>
+            <span>{marketType === "usdm" ? "Live Binance futures tickers and klines are connected." : "Live Binance spot tickers and klines are connected."}</span>
           </div>
         </aside>
 
         <section className="chart panel">
           <div className="panel-title">
             <b>{symbol} · {MARKETS.find((item) => item.symbol === symbol)?.name || "Market"}</b>
-            <span>Disconnected · stale snapshot · ⋯ · −</span>
+            <span>{displayedMarketConnection === "connected" ? "Live feed" : displayedMarketConnection === "reconnecting" ? "Reconnecting" : "Feed unavailable"} · ⋯ · −</span>
           </div>
 
           <div className="chart-toolbar">
@@ -961,18 +968,18 @@ function App() {
             </div>
             <div className="chart-stage">
               <MarketChart
-                candles={marketType === "spot" ? candles : []}
+                candles={candles}
                 symbol={symbol}
-                connected={marketType === "spot" ? chartConnected : false}
-                loading={marketType === "spot" ? marketLoading : false}
-                error={marketType === "spot" ? marketError : "Futures market data is not connected to the terminal yet."}
+                connected={chartConnected}
+                loading={marketLoading}
+                error={marketError}
                 theme={theme}
               />
             </div>
           </div>
 
           <div className="chart-source-row">
-            <span>{marketType === "spot" ? "Historical source plot · original candles and volume · not live" : "Futures market source unavailable"}</span>
+            <span>{marketType === "usdm" ? "Binance USDⓈ-M Futures · klines + live kline stream" : "Binance Spot · klines + live kline stream"}</span>
             <span>Volume · Crosshair · UTC</span>
           </div>
 
@@ -1024,7 +1031,7 @@ function App() {
 
           {marketType === "usdm" && (
             <div className="notice warning">
-              Futures execution is intentionally unavailable until the terminal has a dedicated futures market feed and order flow.
+              Futures market data is live. Order execution remains disabled until the futures order flow is separately verified.
             </div>
           )}
 

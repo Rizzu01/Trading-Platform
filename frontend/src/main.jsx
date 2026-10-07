@@ -191,38 +191,7 @@ function App() {
 
     if (theme === "system") {
       media.addEventListener("change", applyTheme);
-      const scannerOverlay = scannerOpen ? (
-    <div className="scanner-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setScannerOpen(false); }}>
-      <section className="scanner-card">
-        <header className="scanner-head">
-          <div><strong>Market Scanner</strong><span>Live Binance USDT setups · {marketType === "usdm" ? "USDⓈ-M Futures" : "Spot"} · {timeframe}</span></div>
-          <div className="scanner-actions"><button onClick={runMarketScanner} disabled={scannerLoading}>{scannerLoading ? "Scanning…" : "Rescan"}</button><button onClick={() => setScannerOpen(false)}>×</button></div>
-        </header>
-        {scannerError && <div className="scanner-error">{scannerError}</div>}
-        <div className="scanner-table">
-          <div className="scanner-row scanner-header"><span>Market</span><span>Signal</span><span>Score</span><span>Live</span><span>Evidence</span><span>Agreement</span><span>Regime</span></div>
-          {scannerLoading && <div className="scanner-empty">Scanning live markets…</div>}
-          {!scannerLoading && !scannerError && scannerResults.length === 0 && <div className="scanner-empty">No qualified setups found.</div>}
-          {!scannerLoading && scannerResults.map((item) => (
-            <button className="scanner-row scanner-result" key={item.symbol} onClick={() => selectScannerSetup(item)}>
-              <span><strong>{item.symbol}</strong><small>{item.marketType}</small></span>
-              <span className={item.signal === "LONG" ? "up" : item.signal === "SHORT" ? "down" : ""}>{item.signal || "—"}</span>
-              <span>{item.setupScore ?? "—"}</span><span>{item.liveConfidence ?? item.confidence ?? "—"}%</span>
-              <span>{item.historicalEvidenceScore ?? 0}%</span><span>{item.strategyAgreement ?? 0}/{item.strategiesEvaluated ?? 0}</span>
-              <span>{item.regime || item.trend || "—"}</span>
-            </button>
-          ))}
-        </div>
-        <footer className="scanner-foot">Scores combine live strategy confidence, strategy agreement and historical screening evidence. They are not a profitability guarantee.</footer>
-      </section>
-    </div>
-  ) : null;
-
-  return () => media.removeEventListener("change", applyTheme);
-    }
-  }, [theme]);
-
-  useEffect(() => {
+      useEffect(() => {
     const handleShortcut = (event) => {
       const tag = event.target?.tagName;
       if (event.key === "/" && tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT" && !event.metaKey && !event.ctrlKey && !event.altKey) {
@@ -811,6 +780,33 @@ function App() {
   const formattedHigh = high == null ? "—" : formatMarketNumber(high, 2);
   const formattedLow = low == null ? "—" : formatMarketNumber(low, 2);
   const formattedVolume = volume == null ? "—" : `$${(volume / 1e9).toFixed(2)}B`;
+
+  const scannerOverlay = scannerOpen ? (
+    <div className="scanner-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setScannerOpen(false); }}>
+      <section className="scanner-card" aria-label="Market Scanner">
+        <header className="scanner-head">
+          <div><strong>Market Scanner</strong><span>Live Binance USDT setups · {marketType === "usdm" ? "USDⓈ-M Futures" : "Spot"} · {timeframe}</span></div>
+          <div className="scanner-actions"><button type="button" onClick={runMarketScanner} disabled={scannerLoading}>{scannerLoading ? "Scanning…" : "Rescan"}</button><button type="button" onClick={() => setScannerOpen(false)} aria-label="Close scanner">×</button></div>
+        </header>
+        {scannerError && <div className="scanner-error">{scannerError}</div>}
+        <div className="scanner-table">
+          <div className="scanner-row scanner-header"><span>Market</span><span>Signal</span><span>Score</span><span>Live</span><span>Evidence</span><span>Agreement</span><span>Regime</span></div>
+          {scannerLoading && <div className="scanner-empty">Scanning live markets…</div>}
+          {!scannerLoading && !scannerError && scannerResults.length === 0 && <div className="scanner-empty">No qualified setups found.</div>}
+          {!scannerLoading && scannerResults.map((item) => (
+            <button type="button" className="scanner-row scanner-result" key={item.symbol} onClick={() => selectScannerSetup(item)}>
+              <span><strong>{item.symbol}</strong><small>{item.marketType}</small></span>
+              <span className={item.signal === "LONG" ? "up" : item.signal === "SHORT" ? "down" : ""}>{item.signal || "—"}</span>
+              <span>{item.setupScore ?? "—"}</span><span>{item.liveConfidence ?? item.confidence ?? "—"}%</span>
+              <span>{item.historicalEvidenceScore ?? 0}%</span><span>{item.strategyAgreement ?? 0}/{item.strategiesEvaluated ?? 0}</span>
+              <span>{item.regime || item.trend || "—"}</span>
+            </button>
+          ))}
+        </div>
+        <footer className="scanner-foot">Scores combine live strategy confidence, strategy agreement and historical screening evidence. They are not a profitability guarantee.</footer>
+      </section>
+    </div>
+  ) : null;
 
   return (
     <main className="terminal">

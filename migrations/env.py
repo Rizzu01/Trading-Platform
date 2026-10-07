@@ -9,6 +9,7 @@ from database.base import Base
 from models.user import User
 from models.exchange import Exchange
 from models.order import Order
+from models.position import Position
 
 config = context.config
 

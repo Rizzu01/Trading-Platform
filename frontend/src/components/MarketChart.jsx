@@ -14,6 +14,9 @@ export default function MarketChart({ candles = [], symbol, connected, loading, 
   const candleSeriesRef = useRef(null);
   const volumeSeriesRef = useRef(null);
   const initializedRef = useRef(false);
+  const hasFittedRef = useRef(false);
+  const followRealtimeRef = useRef(true);
+  const dataLengthRef = useRef(0);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -25,7 +28,6 @@ export default function MarketChart({ candles = [], symbol, connected, loading, 
       layout: {
         background: { type: "solid", color: "#0a0c0f" },
         textColor: "#7f8790",
-        attributionLogo: false,
       },
       grid: {
         vertLines: { color: "#171a1f" },
@@ -118,13 +120,27 @@ export default function MarketChart({ candles = [], symbol, connected, loading, 
     observer.observe(container);
     resize();
 
+    const handleVisibleRangeChange = () => {
+      const previousLength = dataLengthRef.current;
+      if (!previousLength) return;
+      const range = chart.timeScale().getVisibleLogicalRange();
+      if (!range) return;
+      followRealtimeRef.current = range.to >= previousLength - 4;
+    };
+
+    chart.timeScale().subscribeVisibleLogicalRangeChange(handleVisibleRangeChange);
+
     return () => {
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleVisibleRangeChange);
       observer.disconnect();
       chart.remove();
       chartRef.current = null;
       candleSeriesRef.current = null;
       volumeSeriesRef.current = null;
       initializedRef.current = false;
+      hasFittedRef.current = false;
+      followRealtimeRef.current = true;
+      dataLengthRef.current = 0;
     };
   }, []);
 
@@ -167,14 +183,31 @@ export default function MarketChart({ candles = [], symbol, connected, loading, 
       };
     });
 
+    if (!unique.length) {
+      hasFittedRef.current = false;
+      dataLengthRef.current = 0;
+      return;
+    }
+
+    if (dataLengthRef.current > 0) {
+      const range = chartRef.current?.timeScale().getVisibleLogicalRange();
+      if (range) {
+        followRealtimeRef.current = range.to >= dataLengthRef.current - 4;
+      }
+    }
+
     candleSeriesRef.current.setData(unique);
     volumeSeriesRef.current.setData(volume);
 
-    if (unique.length && !chartRef.current?.timeScale().getVisibleRange()) {
+    if (!hasFittedRef.current) {
       chartRef.current.timeScale().fitContent();
-    } else if (unique.length) {
+      hasFittedRef.current = true;
+      followRealtimeRef.current = true;
+    } else if (followRealtimeRef.current) {
       chartRef.current.timeScale().scrollToRealTime();
     }
+
+    dataLengthRef.current = unique.length;
   }, [candles]);
 
   return (

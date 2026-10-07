@@ -1,34 +1,42 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import MarketChart from "./components/MarketChart";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
-const WS_BASE = API_BASE.replace(/^http/, "ws");
 const BINANCE_DATA_BASE = "https://data-api.binance.vision";
-const BINANCE_REST_BASES = [BINANCE_DATA_BASE, "https://api.binance.com", API_BASE];
 const BINANCE_STREAM_BASE = "wss://data-stream.binance.vision/ws";
 
-async function refreshSession() {
-  const refreshToken = localStorage.getItem("refresh_token");
-  if (!refreshToken) return false;
+let refreshPromise = null;
 
-  try {
-    const response = await fetch(API_BASE + "/api/v1/auth/refresh", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    });
-    if (!response.ok) throw new Error("Refresh failed");
-    const data = await response.json();
-    localStorage.setItem("access_token", data.access_token);
-    localStorage.setItem("refresh_token", data.refresh_token);
-    return true;
-  } catch {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    return false;
-  }
+async function refreshSession() {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (!refreshToken) return false;
+
+    try {
+      const response = await fetch(API_BASE + "/api/v1/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (!response.ok) throw new Error("Refresh failed");
+      const data = await response.json();
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("refresh_token", data.refresh_token);
+      return true;
+    } catch {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 async function authFetch(url, options = {}) {
@@ -145,8 +153,10 @@ function App() {
   const [positions, setPositions] = useState([]);
   const [openOrders, setOpenOrders] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
+  const [dataState, setDataState] = useState({ positions: "", open: "", history: "" });
   const [theme, setTheme] = useState(() => localStorage.getItem("tradelab-theme") || "system");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: light)");
@@ -164,6 +174,18 @@ function App() {
       return () => media.removeEventListener("change", applyTheme);
     }
   }, [theme]);
+
+  useEffect(() => {
+    const handleShortcut = (event) => {
+      const tag = event.target?.tagName;
+      if (event.key === "/" && tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", handleShortcut);
+    return () => document.removeEventListener("keydown", handleShortcut);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -342,7 +364,9 @@ function App() {
       });
 
       setTicker((current) => {
-        const existing = current || marketData[normalizedSymbol.toUpperCase()] || {};
+        const existing = current?.symbol === normalizedSymbol.toUpperCase()
+          ? current
+          : marketData[normalizedSymbol.toUpperCase()] || {};
         return {
           ...existing,
           symbol: k.s || normalizedSymbol.toUpperCase(),
@@ -405,7 +429,7 @@ function App() {
     const payload = authMode === "register" ? { full_name: authName, email: authEmail, password: authPassword } : { email: authEmail, password: authPassword };
     try {
       const response = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         const validationMessage = Array.isArray(data.errors) && data.errors.length
           ? data.errors.map((item) => item.msg || item.message).filter(Boolean).join(", ")
@@ -418,7 +442,9 @@ function App() {
       }
       setAuthMessage(authMode === "register" ? "Account created. You can now sign in." : "Signed in successfully.");
       if (authMode === "login") setAuthMode(null);
-    } catch (error) { setAuthMessage(error.message); }
+    } catch (error) {
+      setAuthMessage(error.name === "TypeError" ? "Backend unavailable or network error." : error.message);
+    }
   };
 
   const accessToken = localStorage.getItem("access_token");
@@ -450,28 +476,28 @@ function App() {
         authFetch(`${API_BASE}/api/v1/orders/${exchangeId}/history?symbol=${encodeURIComponent(symbol.replace("/", ""))}`),
       ]);
 
-      if (positionsResponse.ok) {
-        const data = await positionsResponse.json();
-        setPositions(data.positions || []);
-      } else {
-        setPositions([]);
-      }
-      if (openResponse.ok) {
-        const data = await openResponse.json();
-        setOpenOrders(data.orders || []);
-      } else {
-        setOpenOrders([]);
-      }
-      if (historyResponse.ok) {
-        const data = await historyResponse.json();
-        setOrderHistory(data.orders || []);
-      } else {
-        setOrderHistory([]);
-      }
-    } catch {
+      const readResult = async (response, fallback) => {
+        const payload = await response.json().catch(() => ({}));
+        return response.ok
+          ? { payload, error: "" }
+          : { payload: null, error: formatApiError(response.status, payload, fallback) };
+      };
+
+      const [positionsResult, openResult, historyResult] = await Promise.all([
+        readResult(positionsResponse, "Unable to load positions."),
+        readResult(openResponse, "Unable to load open orders."),
+        readResult(historyResponse, "Unable to load order history."),
+      ]);
+
+      if (positionsResult.payload) setPositions(positionsResult.payload.positions || []); else setPositions([]);
+      if (openResult.payload) setOpenOrders(openResult.payload.orders || []); else setOpenOrders([]);
+      if (historyResult.payload) setOrderHistory(historyResult.payload.orders || []); else setOrderHistory([]);
+      setDataState({ positions: positionsResult.error, open: openResult.error, history: historyResult.error });
+    } catch (error) {
       setPositions([]);
       setOpenOrders([]);
       setOrderHistory([]);
+      setDataState({ positions: error.message || "Unable to load positions.", open: error.message || "Unable to load open orders.", history: error.message || "Unable to load order history." });
     }
   };
 
@@ -528,6 +554,11 @@ function App() {
       setApiSecret("");
       setExchangeMessage("Exchange credentials verified and connected.");
       await loadExchanges();
+      if (data?.id) {
+        setExchangeName(data.exchange_name || exchangeName);
+        setMarketType(data.market_type || marketType);
+        await loadBalance(data.id);
+      }
     } catch (error) {
       setExchangeMessage(error.message);
     } finally {
@@ -535,6 +566,22 @@ function App() {
     }
   };
 
+  const cancelOrder = async (order) => {
+    if (!selectedExchangeId || !order?.external_order_id) return;
+    setOrderMessage("");
+    try {
+      const response = await authFetch(
+        `${API_BASE}/api/v1/orders/${selectedExchangeId}/${encodeURIComponent(order.external_order_id)}?symbol=${encodeURIComponent(order.symbol || symbol)}`,
+        { method: "DELETE" }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(formatApiError(response.status, data, "Unable to cancel order."));
+      setOrderMessage(`Order ${order.external_order_id} cancelled successfully.`);
+      await loadTradingData(selectedExchangeId);
+    } catch (error) {
+      setOrderMessage(error.message);
+    }
+  };
   const logout = async () => {
     const refreshToken = localStorage.getItem("refresh_token");
     try {
@@ -560,22 +607,30 @@ function App() {
     }
   }, [selectedExchangeId, symbol]);
 
-  const activeMarket = marketData[symbol.replace("/", "").toUpperCase()] || ticker || null;
-  const price = Number.isFinite(Number(activeMarket?.last)) ? Number(activeMarket.last) : null;
-  const high = Number.isFinite(Number(activeMarket?.high)) ? Number(activeMarket.high) : null;
-  const low = Number.isFinite(Number(activeMarket?.low)) ? Number(activeMarket.low) : null;
-  const volume = Number.isFinite(Number(activeMarket?.volume)) ? Number(activeMarket.volume) : null;
-  const changePercent = Number.isFinite(Number(activeMarket?.changePercent)) ? Number(activeMarket.changePercent) : null;
+  const normalizedCurrentSymbol = symbol.replace("/", "").toUpperCase();
+  const selectedExchange = exchanges.find((item) => item.id === selectedExchangeId);
+  const selectedMarketMatchesMode = Boolean(selectedExchange && selectedExchange.market_type === marketType);
+  const marketFeedForMode = marketType === "spot";
+  const activeMarket = marketData[normalizedCurrentSymbol]
+    || (ticker?.symbol === normalizedCurrentSymbol ? ticker : null);
+  const price = marketFeedForMode && Number.isFinite(Number(activeMarket?.last)) ? Number(activeMarket.last) : null;
+  const high = marketFeedForMode && Number.isFinite(Number(activeMarket?.high)) ? Number(activeMarket.high) : null;
+  const low = marketFeedForMode && Number.isFinite(Number(activeMarket?.low)) ? Number(activeMarket.low) : null;
+  const volume = marketFeedForMode && Number.isFinite(Number(activeMarket?.volume)) ? Number(activeMarket.volume) : null;
+  const changePercent = marketFeedForMode && Number.isFinite(Number(activeMarket?.changePercent)) ? Number(activeMarket.changePercent) : null;
 
   const baseAsset = symbol.split("/")[0];
   const quoteAsset = symbol.split("/")[1] || "USDT";
-  const quoteBalance = getBalanceAsset(balance, quoteAsset);
-  const baseBalance = getBalanceAsset(balance, baseAsset);
-  const effectivePrice = orderType === "limit" ? Number(priceInput || price || 0) : Number(price || 0);
+  const activeBalance = selectedMarketMatchesMode ? balance : null;
+  const quoteBalance = getBalanceAsset(activeBalance, quoteAsset);
+  const baseBalance = getBalanceAsset(activeBalance, baseAsset);
+  const effectivePrice = orderType === "limit" ? Number(priceInput || 0) : Number(price || 0);
   const estimatedCost = Number(amount || 0) * effectivePrice;
   const priceAvailable = Number.isFinite(price) && price > 0 && marketConnection === "connected";
-  const selectedExchange = exchanges.find((item) => item.id === selectedExchangeId);
-  const futuresSelected = marketType === "usdm";
+  const orderPriceAvailable = orderType === "market"
+    ? priceAvailable
+    : Number.isFinite(Number(priceInput)) && Number(priceInput) > 0;
+
 
   const filteredMarkets = MARKETS.filter((item) => {
     const query = marketSearch.trim().toLowerCase();
@@ -585,14 +640,22 @@ function App() {
   const previewOrder = () => {
     setOrderMessage("");
     const quantity = Number(amount);
-    const selectedPrice = orderType === "limit" ? Number(priceInput || price) : Number(price);
+    const selectedPrice = orderType === "limit" ? Number(priceInput) : Number(price);
 
     if (!selectedExchangeId) {
       setOrderMessage("Connect an exchange before placing an order.");
       return;
     }
-    if (!priceAvailable) {
-      setOrderMessage("Live market price is unavailable. Order submission is disabled.");
+    if (marketType === "usdm") {
+      setOrderMessage("Futures trading is unavailable until a futures-specific live market feed is connected. The current public feed is spot-only.");
+      return;
+    }
+    if (orderType === "market" && !priceAvailable) {
+      setOrderMessage("Live market price is unavailable. Market order submission is disabled.");
+      return;
+    }
+    if (orderType === "limit" && !orderPriceAvailable) {
+      setOrderMessage("Enter a valid limit price.");
       return;
     }
     if (!Number.isFinite(quantity) || quantity <= 0) {
@@ -621,26 +684,19 @@ function App() {
     setOrderMessage("");
 
     try {
+      if (marketType === "usdm") {
+        throw new Error("Futures trading is unavailable until a futures-specific live market feed is connected.");
+      }
       if (!selectedMarketMatchesMode) {
         throw new Error(`Connect a ${marketType === "usdm" ? "Binance USDT-M Futures" : "Spot"} account for this order panel.`);
       }
 
-      if (marketType === "usdm") {
-        const leverageResponse = await authFetch(
-          `${API_BASE}/api/v1/exchange/${selectedExchangeId}/leverage?symbol=${encodeURIComponent(symbol)}&leverage=${leverage}`,
-          { method: "POST" }
-        );
-        const leverageData = await leverageResponse.json().catch(() => ({}));
-        if (!leverageResponse.ok) {
-          throw new Error(formatApiError(leverageResponse.status, leverageData, "Unable to set futures leverage."));
-        }
-      }
 
       const suffix = orderType === "market" ? `market-${side}` : `limit-${side}`;
       const payload = {
         symbol,
         amount: Number(amount),
-        ...(orderType === "limit" ? { price: Number(priceInput || price) } : {}),
+        ...(orderType === "limit" ? { price: Number(priceInput) } : {}),
       };
 
       const response = await authFetch(`${API_BASE}/api/v1/orders/${selectedExchangeId}/${suffix}`, {
@@ -676,11 +732,9 @@ function App() {
         <label className="search-box">
           <span aria-hidden="true">⌕</span>
           <input
+            ref={searchInputRef}
             value={marketSearch}
             onChange={(e) => setMarketSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "/" && e.target === e.currentTarget) e.preventDefault();
-            }}
             placeholder="Search markets"
             aria-label="Search markets"
           />
@@ -732,8 +786,8 @@ function App() {
         </div>
         <div className="market-price">
           <b>{price == null ? "—" : `$${formattedPrice}`}</b>
-          <small className={changePercent != null && changePercent >= 0 ? "up" : "down"}>
-            {changePercent == null ? "Unavailable" : `${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%`}
+                    <small className={marketType === "usdm" ? "down" : (changePercent != null && changePercent >= 0 ? "up" : "down")}>
+            {marketType === "usdm" ? "Futures feed unavailable" : changePercent == null ? "Unavailable" : `${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%`}
           </small>
         </div>
         <div><small>24h High</small><b>{formattedHigh === "—" ? "—" : `$${formattedHigh}`}</b></div>
@@ -824,7 +878,7 @@ function App() {
               <span>Available {quoteAsset}</span>
               <b>{quoteBalance ? formatMarketNumber(quoteBalance.free, 2) : "—"}</b>
             </div>
-            <small>{selectedExchange ? `${selectedExchange.exchange_name} · ${selectedExchange.market_type}` : "Connect an exchange to load account balance."}</small>
+            <small>{selectedExchange && selectedMarketMatchesMode ? `${selectedExchange.exchange_name} · ${selectedExchange.market_type}` : `Connect a ${marketType === "usdm" ? "USDT-M futures" : "spot"} account to load this balance.`}</small>
           </div>
 
           <label>Order type
@@ -869,8 +923,18 @@ function App() {
 
           {orderMessage && <div className="order-message">{orderMessage}</div>}
 
-          <button className="primary" disabled={orderSubmitting || !selectedExchangeId || !priceAvailable} onClick={previewOrder}>
-            {orderSubmitting ? "Submitting…" : !selectedExchangeId ? "Connect exchange first" : !priceAvailable ? "Live price unavailable" : `Preview ${side === "buy" ? "Buy" : "Sell"} ${baseAsset}`}
+          <button className="primary" disabled={orderSubmitting || !selectedExchangeId || !selectedMarketMatchesMode || !orderPriceAvailable || marketType === "usdm"} onClick={previewOrder}>
+            {marketType === "usdm"
+              ? "Futures trading unavailable"
+              : orderSubmitting
+                ? "Submitting…"
+                : !selectedExchangeId
+                  ? "Connect exchange first"
+                  : !selectedMarketMatchesMode
+                    ? `Connect ${marketType === "spot" ? "Spot" : "Futures"} account`
+                    : !orderPriceAvailable
+                      ? (orderType === "market" ? "Live price unavailable" : "Enter limit price")
+                      : `Preview ${side === "buy" ? "Buy" : "Sell"} ${baseAsset}`}
           </button>
 
           <div className="availability-card">
@@ -912,10 +976,16 @@ function App() {
         {!selectedExchangeId && (
           <div className="empty"><strong>Connect an exchange</strong><span>Select a connected exchange to load your trading data.</span></div>
         )}
-        {selectedExchangeId && activeTab === "positions" && selectedExchange?.market_type === "spot" && (
+        {selectedExchangeId && !selectedMarketMatchesMode && (
+          <div className="empty"><strong>Account mode mismatch</strong><span>Selected account is {selectedExchange?.market_type || "unknown"}; switch the terminal to the matching mode.</span></div>
+        )}
+        {selectedExchangeId && selectedMarketMatchesMode && dataState.positions && (
+          <div className="availability-card large"><strong>Positions unavailable</strong><span>{dataState.positions}</span></div>
+        )}
+        {selectedExchangeId && selectedMarketMatchesMode && activeTab === "positions" && selectedExchange?.market_type === "spot" && (
           <div className="empty"><strong>Positions are not applicable to spot</strong><span>Connect a futures account to view leveraged positions.</span></div>
         )}
-        {selectedExchangeId && activeTab === "positions" && selectedExchange?.market_type !== "spot" && (
+        {selectedExchangeId && selectedMarketMatchesMode && !dataState.positions && activeTab === "positions" && selectedExchange?.market_type !== "spot" && (
           positions.length ? <div className="position-list">{positions.map((item, index) => {
             const positionSide = String(item.side || "—").toUpperCase();
             const contracts = Number(item.contracts ?? item.amount ?? item.quantity ?? 0);
@@ -945,7 +1015,10 @@ function App() {
             );
           })}</div> : <div className="empty"><strong>No active positions</strong><span>Open futures positions will appear here.</span></div>
         )}
-        {selectedExchangeId && activeTab === "open" && (
+        {selectedExchangeId && selectedMarketMatchesMode && activeTab === "open" && dataState.open && (
+          <div className="availability-card large"><strong>Open orders unavailable</strong><span>{dataState.open}</span></div>
+        )}
+        {selectedExchangeId && selectedMarketMatchesMode && activeTab === "open" && !dataState.open && (
           openOrders.length ? <div className="order-table-wrap"><div className="order-table">
             <div className="order-row order-header"><span>Pair</span><span>Side / Type</span><span>Amount</span><span>Price</span><span>Filled</span><span>Status</span></div>
             {openOrders.map((item, index) => {
@@ -959,12 +1032,18 @@ function App() {
                 <span>{amountValue || item.amount || "—"}</span>
                 <span>{item.price ?? "Market"}</span>
                 <span><b>{filledValue || 0}</b><small>{fillPct.toFixed(0)}%</small></span>
-                <span><em className="status-badge">{item.status || "open"}</em></span>
+                <span>
+                  <em className="status-badge">{item.status || "open"}</em>
+                  <button className="cancel-order-button" type="button" onClick={() => cancelOrder(item)}>Cancel</button>
+                </span>
               </div>;
             })}
           </div></div> : <div className="empty"><strong>No open orders</strong><span>Open orders for {symbol} will appear here.</span></div>
         )}
-        {selectedExchangeId && activeTab === "history" && (
+        {selectedExchangeId && selectedMarketMatchesMode && activeTab === "history" && dataState.history && (
+          <div className="availability-card large"><strong>Order history unavailable</strong><span>{dataState.history}</span></div>
+        )}
+        {selectedExchangeId && selectedMarketMatchesMode && activeTab === "history" && !dataState.history && (
           orderHistory.length ? <div className="order-table-wrap"><div className="order-table">
             <div className="order-row order-header"><span>Pair</span><span>Side / Type</span><span>Amount</span><span>Avg. Price</span><span>Filled</span><span>Status</span></div>
             {orderHistory.slice(0, 12).map((item, index) => {

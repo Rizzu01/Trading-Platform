@@ -74,3 +74,12 @@ small { color: #747b85; font-size: 11px; }
 .exchange-item { width:100%; display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #24282d; border-radius:7px; background:#0d0f12; color:#e6e8eb; font-size:12px; cursor:pointer; text-align:left; }
 .exchange-item:hover, .exchange-item.selected { border-color:#56643d; background:#151914; }
 .exchange-item b { font-weight:700; }
+
+.tabs { display:flex; gap:14px; align-items:center; }
+.tab { border:0; background:transparent; color:#707780; padding:5px 0; cursor:pointer; font:inherit; }
+.tab.active { color:#b9ee45; }
+.data-list { display:flex; flex-direction:column; }
+.data-row { min-height:52px; display:flex; justify-content:space-between; align-items:center; gap:20px; padding:10px 8px; border-top:1px solid #1a1d21; color:#dfe2e6; font-size:12px; }
+.data-row > span { display:flex; flex-direction:column; gap:4px; }
+.data-row > span:last-child { align-items:flex-end; }
+.data-row small { color:#737b84; }

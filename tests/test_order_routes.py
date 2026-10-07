@@ -16,7 +16,7 @@ def test_market_order_requires_authentication():
         "/api/v1/orders/12345678-1234-5678-1234-567812345678/market-buy",
         json={"symbol": "BTCUSDT", "amount": 0.01},
     )
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 def test_market_order_validation_is_enforced():

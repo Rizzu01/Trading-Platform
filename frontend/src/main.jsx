@@ -6,6 +6,8 @@ import MarketChart from "./components/MarketChart";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 const BINANCE_DATA_BASE = "https://data-api.binance.vision";
 const BINANCE_STREAM_BASE = "wss://data-stream.binance.vision/ws";
+const BINANCE_FUTURES_DATA_BASE = "https://fapi.binance.com";
+const BINANCE_FUTURES_STREAM_BASE = "wss://fstream.binance.com/market";
 
 let refreshPromise = null;
 
@@ -189,6 +191,7 @@ function App() {
 
   useEffect(() => {
     const controller = new AbortController();
+    const isFutures = marketType === "usdm";
 
     const loadCandles = async () => {
       setMarketLoading(true);
@@ -201,16 +204,21 @@ function App() {
         limit: "120",
       });
 
+      const endpoints = isFutures
+        ? [\`${BINANCE_FUTURES_DATA_BASE}/fapi/v1/klines?\${query.toString()}\`]
+        : [
+            \`${BINANCE_DATA_BASE}/api/v3/klines?\${query.toString()}\`,
+            \`https://api.binance.com/api/v3/klines?\${query.toString()}\`,
+          ];
+
       let lastError = null;
 
-      for (const base of [BINANCE_DATA_BASE, "https://api.binance.com"]) {
+      for (const endpoint of endpoints) {
         try {
-          const response = await fetch(`${base}/api/v3/klines?${query.toString()}`, {
-            signal: controller.signal,
-          });
+          const response = await fetch(endpoint, { signal: controller.signal });
 
           if (!response.ok) {
-            lastError = new Error(`Market data returned HTTP ${response.status}`);
+            lastError = new Error(\`Market data returned HTTP ${response.status}\`);
             continue;
           }
 
@@ -246,21 +254,29 @@ function App() {
       throw lastError || new Error("Live market data is unavailable.");
     };
 
+    setCandles([]);
     loadCandles()
       .catch((error) => {
         if (error.name !== "AbortError") {
           setCandles([]);
-          setMarketError("Live market data is unavailable.");
+          setMarketError(
+            isFutures
+              ? "USDⓈ-M Futures market data is unavailable."
+              : "Live market data is unavailable."
+          );
         }
       })
       .finally(() => setMarketLoading(false));
 
     return () => controller.abort();
-  }, [symbol, timeframe]);
+  }, [symbol, timeframe, marketType]);
 
   useEffect(() => {
-    const tickerStreams = MARKETS.map((item) => `${item.symbol.replace("/", "").toLowerCase()}@ticker`).join("/");
-    const tickerUrl = `wss://data-stream.binance.vision/stream?streams=${tickerStreams}`;
+    const isFutures = marketType === "usdm";
+    const tickerStreams = MARKETS.map((item) => \`${item.symbol.replace("/", "").toLowerCase()}@ticker\`).join("/");
+    const tickerUrl = isFutures
+      ? \`${BINANCE_FUTURES_STREAM_BASE}/stream?streams=${tickerStreams}\`
+      : \`wss://data-stream.binance.vision/stream?streams=${tickerStreams}\`;
     const normalizedSymbol = symbol.replace("/", "").toLowerCase();
     let tickerSocket;
     let klineSocket;
@@ -269,6 +285,12 @@ function App() {
     let tickerAttempt = 0;
     let klineAttempt = 0;
     let disposed = false;
+
+    setMarketConnection("connecting");
+    setConnected(false);
+    setChartConnected(false);
+    setMarketData({});
+    setTicker(null);
 
     const scheduleReconnect = (kind, connectFn, attempt) => {
       const delay = Math.min(30000, 1000 * (2 ** Math.min(attempt, 5)));
@@ -363,33 +385,33 @@ function App() {
         return next.slice(-120);
       });
 
-      setTicker((current) => {
-        const existing = current?.symbol === normalizedSymbol.toUpperCase()
-          ? current
-          : marketData[normalizedSymbol.toUpperCase()] || {};
-        return {
-          ...existing,
-          symbol: k.s || normalizedSymbol.toUpperCase(),
-          last: nextCandle.close,
-          high: existing.high ?? nextCandle.high,
-          low: existing.low ?? nextCandle.low,
-          volume: existing.volume ?? nextCandle.volume,
-        };
-      });
+      setTicker((current) => ({
+        ...(current || {}),
+        symbol: k.s || normalizedSymbol.toUpperCase(),
+        last: nextCandle.close,
+        high: current?.high ?? nextCandle.high,
+        low: current?.low ?? nextCandle.low,
+        volume: current?.volume ?? nextCandle.volume,
+      }));
     };
 
     const connectKline = () => {
       if (disposed) return;
 
       try {
-        klineSocket = new WebSocket(`${BINANCE_STREAM_BASE}/${normalizedSymbol}@kline_${timeframe}`);
+        const klineBase = isFutures
+          ? BINANCE_FUTURES_STREAM_BASE
+          : BINANCE_STREAM_BASE;
+        const klineUrl = \`${klineBase}/${normalizedSymbol}@kline_${timeframe}\`;
+        klineSocket = new WebSocket(klineUrl);
         klineSocket.onopen = () => {
           klineAttempt = 0;
           setChartConnected(true);
         };
         klineSocket.onmessage = (event) => {
           try {
-            upsertKline(JSON.parse(event.data));
+            const message = JSON.parse(event.data);
+            upsertKline(message.data || message);
           } catch {}
         };
         klineSocket.onerror = () => setChartConnected(false);
@@ -421,7 +443,7 @@ function App() {
       setConnected(false);
       setChartConnected(false);
     };
-  }, [symbol, timeframe]);
+  }, [symbol, timeframe, marketType]);
 
   const submitAuth = async () => {
     setAuthMessage("Connecting...");
@@ -610,8 +632,8 @@ function App() {
   const normalizedCurrentSymbol = symbol.replace("/", "").toUpperCase();
   const selectedExchange = exchanges.find((item) => item.id === selectedExchangeId);
   const selectedMarketMatchesMode = Boolean(selectedExchange && selectedExchange.market_type === marketType);
-  const marketFeedForMode = marketType === "spot";
-  const displayedMarketConnection = marketType === "spot" ? marketConnection : "error";
+  const marketFeedForMode = marketType === "spot" || marketType === "usdm";
+  const displayedMarketConnection = marketConnection;
   const activeMarket = marketData[normalizedCurrentSymbol]
     || (ticker?.symbol === normalizedCurrentSymbol ? ticker : null);
   const price = marketFeedForMode && Number.isFinite(Number(activeMarket?.last)) ? Number(activeMarket.last) : null;
@@ -627,7 +649,7 @@ function App() {
   const baseBalance = getBalanceAsset(activeBalance, baseAsset);
   const effectivePrice = orderType === "limit" ? Number(priceInput || 0) : Number(price || 0);
   const estimatedCost = Number(amount || 0) * effectivePrice;
-  const priceAvailable = Number.isFinite(price) && price > 0 && marketConnection === "connected";
+  const priceAvailable = marketFeedForMode && Number.isFinite(price) && price > 0 && marketConnection === "connected";
   const orderPriceAvailable = orderType === "market"
     ? priceAvailable
     : Number.isFinite(Number(priceInput)) && Number(priceInput) > 0;
@@ -645,10 +667,6 @@ function App() {
 
     if (!selectedExchangeId) {
       setOrderMessage("Connect an exchange before placing an order.");
-      return;
-    }
-    if (marketType === "usdm") {
-      setOrderMessage("Futures trading is unavailable until a futures-specific live market feed is connected. The current public feed is spot-only.");
       return;
     }
     if (orderType === "market" && !priceAvailable) {
@@ -685,9 +703,6 @@ function App() {
     setOrderMessage("");
 
     try {
-      if (marketType === "usdm") {
-        throw new Error("Futures trading is unavailable until a futures-specific live market feed is connected.");
-      }
       if (!selectedMarketMatchesMode) {
         throw new Error(`Connect a ${marketType === "usdm" ? "Binance USDT-M Futures" : "Spot"} account for this order panel.`);
       }
@@ -752,7 +767,7 @@ function App() {
         <div className="top-actions">
           <div className={`market-connection ${displayedMarketConnection}`}>
             <i />
-            <span>{marketType === "usdm" ? "Unavailable" : displayedMarketConnection === "connected" ? "Live" : displayedMarketConnection === "reconnecting" ? "Reconnecting" : displayedMarketConnection === "connecting" ? "Connecting" : displayedMarketConnection === "error" ? "Error" : "Disconnected"}</span>
+            <span>{displayedMarketConnection === "connected" ? "Live" : displayedMarketConnection === "reconnecting" ? "Reconnecting" : displayedMarketConnection === "connecting" ? "Connecting" : displayedMarketConnection === "error" ? "Error" : "Disconnected"}</span>
           </div>
           <button className="icon-button" type="button" disabled title="Notifications are not backed by a notification API yet">♧</button>
           <button
@@ -799,7 +814,7 @@ function App() {
         <div className="market-price">
           <b>{price == null ? "—" : `$${formattedPrice}`}</b>
           <small className={marketType === "usdm" ? "down" : (changePercent != null && changePercent >= 0 ? "up" : "down")}>
-            {marketType === "usdm" ? "Futures feed unavailable" : changePercent == null ? "Unavailable" : `${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%`}
+            {changePercent == null ? "Unavailable" : `${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%`}
           </small>
         </div>
 
@@ -826,9 +841,9 @@ function App() {
         <div className="market-context">
           <div className="status-badge-inline">
             <i />
-            <span>{displayedMarketConnection === "connected" ? "Live" : displayedMarketConnection === "reconnecting" ? "Reconnecting" : "Snapshot only"}</span>
+            <span>{displayedMarketConnection === "connected" ? "Live" : displayedMarketConnection === "reconnecting" ? "Reconnecting" : displayedMarketConnection === "connecting" ? "Connecting" : "Unavailable"}</span>
           </div>
-          <small>{marketType === "usdm" ? "Futures feed unavailable" : "Binance public spot feed"}</small>
+          <small>{marketType === "usdm" ? "Binance USDⓈ-M Futures public market feed" : "Binance public spot feed"}</small>
         </div>
 
         <div className="market-mode">

@@ -611,6 +611,7 @@ function App() {
   const selectedExchange = exchanges.find((item) => item.id === selectedExchangeId);
   const selectedMarketMatchesMode = Boolean(selectedExchange && selectedExchange.market_type === marketType);
   const marketFeedForMode = marketType === "spot";
+  const displayedMarketConnection = marketType === "spot" ? marketConnection : "error";
   const activeMarket = marketData[normalizedCurrentSymbol]
     || (ticker?.symbol === normalizedCurrentSymbol ? ticker : null);
   const price = marketFeedForMode && Number.isFinite(Number(activeMarket?.last)) ? Number(activeMarket.last) : null;
@@ -746,10 +747,10 @@ function App() {
           <button className="nav-link">Orders</button>
         </nav>
         <div className="top-actions">
-          <div className={`market-connection ${marketConnection}`}>
+          <div className={`market-connection ${displayedMarketConnection}`}>
             <i />
-            <span>{marketConnection === "connected" ? "Live" : marketConnection === "reconnecting" ? "Reconnecting" : marketConnection === "connecting" ? "Connecting" : marketConnection === "error" ? "Error" : "Disconnected"}</span>
-            <small>Binance public feed</small>
+            <span>{marketType === "usdm" ? "Unavailable" : displayedMarketConnection === "connected" ? "Live" : displayedMarketConnection === "reconnecting" ? "Reconnecting" : displayedMarketConnection === "connecting" ? "Connecting" : displayedMarketConnection === "error" ? "Error" : "Disconnected"}</span>
+            <small>{marketType === "usdm" ? "Futures feed unavailable" : "Binance public spot feed"}</small>
           </div>
           <select className="theme-select" value={theme} onChange={(e) => setTheme(e.target.value)} aria-label="Theme">
             <option value="system">System</option>
@@ -852,11 +853,11 @@ function App() {
             </div>
           </div>
           <MarketChart
-            candles={candles}
+            candles={marketType === "spot" ? candles : []}
             symbol={symbol}
-            connected={chartConnected}
-            loading={marketLoading}
-            error={marketError}
+            connected={marketType === "spot" ? chartConnected : false}
+            loading={marketType === "spot" ? marketLoading : false}
+            error={marketType === "spot" ? marketError : "Futures market data is not connected to the terminal yet."}
             theme={theme}
           />
         </section>

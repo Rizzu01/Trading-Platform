@@ -1,0 +1,51 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #f3f4f6;
+  background: #090a0c;
+  font-synthesis: none;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 1180px; background: #090a0c; }
+button, input, select { font: inherit; }
+.terminal { min-height: 100vh; background: radial-gradient(circle at 70% 0%, #171a16 0, #090a0c 34%); }
+.topbar { height: 64px; border-bottom: 1px solid #22252a; display: flex; align-items: center; gap: 28px; padding: 0 24px; }
+.brand { font-weight: 900; letter-spacing: .08em; }
+.brand span { color: #c8ff3d; }
+.search { width: 270px; padding: 10px 14px; border: 1px solid #272a30; border-radius: 8px; color: #7f858e; background: #101216; }
+.status { margin-left: auto; color: #9298a1; font-size: 13px; }
+.status i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #a9e83d; margin-right: 7px; }
+.profile { border: 0; border-radius: 50%; width: 34px; height: 34px; background: #252a20; color: #c8ff3d; font-weight: 800; }
+.marketbar { height: 78px; border-bottom: 1px solid #22252a; display: flex; align-items: center; gap: 38px; padding: 0 24px; }
+.marketbar > div { display: flex; flex-direction: column; gap: 4px; }
+.marketbar .pair { min-width: 220px; }
+small { color: #747b85; font-size: 11px; }
+.up { color: #9fdf42 !important; }
+.down { color: #ed7777 !important; }
+.workspace { display: grid; grid-template-columns: 250px minmax(560px, 1fr) 300px; gap: 1px; background: #22252a; }
+.panel { background: #0d0f12; }
+.markets, .order { min-height: 510px; padding: 16px; }
+.chart { min-height: 510px; padding: 16px; }
+.panel-title { height: 34px; display: flex; align-items: center; justify-content: space-between; color: #aeb4bc; }
+.panel-title span { color: #7b818a; font-size: 12px; }
+.tabs { color: #707780; font-size: 12px; }
+.markets input, .order input, .order select { width: 100%; border: 1px solid #252930; background: #13161a; color: #e6e8eb; padding: 10px; border-radius: 6px; margin: 10px 0; outline: none; }
+.market-row { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; padding: 13px 4px; border-bottom: 1px solid #1a1d21; }
+.market-row div { display: flex; flex-direction: column; }
+.market-row em { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-style: normal; font-size: 12px; }
+.chart-area { position: relative; height: 420px; margin-top: 8px; overflow: hidden; background: #0a0c0f; border: 1px solid #181b20; }
+.grid { position: absolute; inset: 0; background-image: linear-gradient(#181b20 1px, transparent 1px), linear-gradient(90deg, #181b20 1px, transparent 1px); background-size: 80px 70px; opacity: .65; }
+.chart svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.chart polyline { fill: none; stroke: #b9ee45; stroke-width: 3; vector-effect: non-scaling-stroke; }
+.price-line { position: absolute; right: 8px; top: 42px; padding: 4px 7px; background: #b9ee45; color: #0a0c0f; font-size: 11px; font-weight: 800; border-radius: 3px; }
+.segmented { display: grid; grid-template-columns: 1fr 1fr; margin: 10px 0 18px; background: #15181c; border-radius: 6px; padding: 3px; }
+.segmented button { border: 0; background: transparent; color: #818790; padding: 9px; border-radius: 4px; }
+.segmented .active { background: #232821; color: #b9ee45; }
+.balance { font-size: 12px; color: #737a84; display: flex; justify-content: space-between; margin-bottom: 12px; }
+.order label { display: block; color: #777e88; font-size: 11px; }
+.slider { display: flex; justify-content: space-between; margin: 6px 0 18px; }
+.slider span { width: 7px; height: 7px; background: #4b515a; border-radius: 50%; }
+.summary { display: flex; justify-content: space-between; font-size: 12px; color: #757c85; margin: 20px 0; }
+.primary { width: 100%; border: 0; padding: 12px; border-radius: 6px; background: #b9ee45; color: #090a0c; font-weight: 800; cursor: pointer; }
+.bottom { min-height: 220px; border-top: 1px solid #22252a; padding: 16px 24px; }
+.empty { height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; color: #6f767f; }
+.empty strong { color: #b9bec5; font-size: 13px; }

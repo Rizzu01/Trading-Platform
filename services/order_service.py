@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from exchanges.factory import create_exchange
 from models.order import Order, OrderSide, OrderStatus, OrderType
 from schemas.order import LimitOrderRequest, MarketOrderRequest
-from core.exceptions import NotSupportedException
+from core.exceptions import BadRequestException, NotSupportedException
 from services.exchange_service import ExchangeService
 
 
@@ -146,15 +146,15 @@ class OrderService:
         symbol = _normalize_symbol(symbol)
 
         if order_type == OrderType.MARKET and side == OrderSide.BUY:
-            raw = exchange.market_buy(symbol, amount)
+            raw = ExchangeService._call_exchange(lambda: exchange.market_buy(symbol, amount))
         elif order_type == OrderType.MARKET and side == OrderSide.SELL:
-            raw = exchange.market_sell(symbol, amount)
+            raw = ExchangeService._call_exchange(lambda: exchange.market_sell(symbol, amount))
         elif order_type == OrderType.LIMIT and side == OrderSide.BUY:
-            raw = exchange.limit_buy(symbol, amount, price)
+            raw = ExchangeService._call_exchange(lambda: exchange.limit_buy(symbol, amount, price))
         elif order_type == OrderType.LIMIT and side == OrderSide.SELL:
-            raw = exchange.limit_sell(symbol, amount, price)
+            raw = ExchangeService._call_exchange(lambda: exchange.limit_sell(symbol, amount, price))
         else:
-            raise NotImplementedError("Unsupported order configuration.")
+            raise BadRequestException("Unsupported order configuration.")
 
         record = _persist_order(
             db, user_id, exchange_id, raw, symbol, side, order_type
@@ -192,7 +192,7 @@ class OrderService:
             raise NotSupportedException("Open orders are not supported by this exchange adapter.")
 
         normalized = _normalize_symbol(symbol) if symbol else None
-        raw_orders = exchange.get_open_orders(normalized)
+        raw_orders = ExchangeService._call_exchange(lambda: exchange.get_open_orders(normalized))
         records = [
             _persist_order(
                 db,
@@ -214,7 +214,7 @@ class OrderService:
             raise NotSupportedException("Order history is not supported by this exchange adapter.")
 
         normalized = _normalize_symbol(symbol) if symbol else None
-        raw_orders = exchange.get_order_history(normalized)
+        raw_orders = ExchangeService._call_exchange(lambda: exchange.get_order_history(normalized))
         records = [
             _persist_order(
                 db,
@@ -232,7 +232,11 @@ class OrderService:
     @staticmethod
     def cancel_order(db: Session, user_id: UUID, exchange_id: UUID, order_id: str, symbol: str):
         exchange = OrderService._client(db, user_id, exchange_id)
-        result = exchange.cancel_order(order_id=order_id, symbol=_normalize_symbol(symbol))
+        if not hasattr(exchange, "cancel_order"):
+            raise NotSupportedException("Order cancellation is not supported by this exchange adapter.")
+        result = ExchangeService._call_exchange(
+            lambda: exchange.cancel_order(order_id=order_id, symbol=_normalize_symbol(symbol))
+        )
 
         record = (
             db.query(Order)

@@ -162,6 +162,10 @@ function App() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [strategyLabOpen, setStrategyLabOpen] = useState(false);
   const [aiCopilotOpen, setAiCopilotOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerLoading, setScannerLoading] = useState(false);
+  const [scannerResults, setScannerResults] = useState([]);
+  const [scannerError, setScannerError] = useState("");
   const [chartToolState, setChartToolState] = useState({
     crosshair: true,
     volume: true,
@@ -187,7 +191,34 @@ function App() {
 
     if (theme === "system") {
       media.addEventListener("change", applyTheme);
-      return () => media.removeEventListener("change", applyTheme);
+      const scannerOverlay = scannerOpen ? (
+    <div className="scanner-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setScannerOpen(false); }}>
+      <section className="scanner-card">
+        <header className="scanner-head">
+          <div><strong>Market Scanner</strong><span>Live Binance USDT setups · {marketType === "usdm" ? "USDⓈ-M Futures" : "Spot"} · {timeframe}</span></div>
+          <div className="scanner-actions"><button onClick={runMarketScanner} disabled={scannerLoading}>{scannerLoading ? "Scanning…" : "Rescan"}</button><button onClick={() => setScannerOpen(false)}>×</button></div>
+        </header>
+        {scannerError && <div className="scanner-error">{scannerError}</div>}
+        <div className="scanner-table">
+          <div className="scanner-row scanner-header"><span>Market</span><span>Signal</span><span>Score</span><span>Live</span><span>Evidence</span><span>Agreement</span><span>Regime</span></div>
+          {scannerLoading && <div className="scanner-empty">Scanning live markets…</div>}
+          {!scannerLoading && !scannerError && scannerResults.length === 0 && <div className="scanner-empty">No qualified setups found.</div>}
+          {!scannerLoading && scannerResults.map((item) => (
+            <button className="scanner-row scanner-result" key={item.symbol} onClick={() => selectScannerSetup(item)}>
+              <span><strong>{item.symbol}</strong><small>{item.marketType}</small></span>
+              <span className={item.signal === "LONG" ? "up" : item.signal === "SHORT" ? "down" : ""}>{item.signal || "—"}</span>
+              <span>{item.setupScore ?? "—"}</span><span>{item.liveConfidence ?? item.confidence ?? "—"}%</span>
+              <span>{item.historicalEvidenceScore ?? 0}%</span><span>{item.strategyAgreement ?? 0}/{item.strategiesEvaluated ?? 0}</span>
+              <span>{item.regime || item.trend || "—"}</span>
+            </button>
+          ))}
+        </div>
+        <footer className="scanner-foot">Scores combine live strategy confidence, strategy agreement and historical screening evidence. They are not a profitability guarantee.</footer>
+      </section>
+    </div>
+  ) : null;
+
+  return () => media.removeEventListener("change", applyTheme);
     }
   }, [theme]);
 
@@ -481,6 +512,25 @@ function App() {
     } catch (error) {
       setAuthMessage(error.name === "TypeError" ? "Backend unavailable or network error." : error.message);
     }
+  };
+
+  const runMarketScanner = async () => {
+    setScannerLoading(true); setScannerError("");
+    try {
+      const response = await fetch(API_BASE + "/api/v1/ai/scan", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ market_type: marketType, timeframe, symbols: null }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || data.message || "Scanner request failed.");
+      setScannerResults(Array.isArray(data.results) ? data.results : []);
+    } catch (error) { setScannerError(error.message || "Unable to scan markets."); setScannerResults([]); }
+    finally { setScannerLoading(false); }
+  };
+
+  const selectScannerSetup = (item) => {
+    if (!item?.symbol) return;
+    setSymbol(item.symbol); setScannerOpen(false); setAiCopilotOpen(true);
   };
 
   const accessToken = localStorage.getItem("access_token");
@@ -782,6 +832,7 @@ function App() {
           <button className="nav-link active" type="button">Trade</button>
           <button className="nav-link strategy-nav-link" type="button" onClick={() => setStrategyLabOpen(true)}>Strategy Lab</button>
           <button className="nav-link ai-nav-link" type="button" onClick={() => setAiCopilotOpen(true)}>AI Copilot</button>
+          <button className="nav-link scanner-nav-link" type="button" onClick={() => { setScannerOpen(true); runMarketScanner(); }}>Scanner</button>
           <button className="nav-link" type="button" disabled title="Markets page is not implemented yet">Markets</button>
           <button className="nav-link" type="button" disabled title="Portfolio page is not implemented yet">Portfolio</button>
           <button className="nav-link" type="button" disabled title="Orders page is not implemented yet">Orders</button>

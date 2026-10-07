@@ -36,6 +36,10 @@ function App() {
   const [exchangeMessage, setExchangeMessage] = useState("");
   const [selectedExchangeId, setSelectedExchangeId] = useState(null);
   const [balance, setBalance] = useState(null);
+  const [activeTab, setActiveTab] = useState("positions");
+  const [positions, setPositions] = useState([]);
+  const [openOrders, setOpenOrders] = useState([]);
+  const [orderHistory, setOrderHistory] = useState([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -96,6 +100,40 @@ function App() {
       setSelectedExchangeId(exchangeId);
     } catch (error) {
       setExchangeMessage(error.message);
+    }
+  };
+
+  const loadTradingData = async (exchangeId) => {
+    if (!accessToken || !exchangeId) return;
+    const headers = { Authorization: `Bearer ${accessToken}` };
+    try {
+      const [positionsResponse, openResponse, historyResponse] = await Promise.all([
+        fetch(`${API_BASE}/api/v1/exchange/${exchangeId}/positions`, { headers }),
+        fetch(`${API_BASE}/api/v1/orders/${exchangeId}/open?symbol=${encodeURIComponent(symbol.replace("/", ""))}`, { headers }),
+        fetch(`${API_BASE}/api/v1/orders/${exchangeId}/history?symbol=${encodeURIComponent(symbol.replace("/", ""))}`, { headers }),
+      ]);
+      if (positionsResponse.ok) {
+        const data = await positionsResponse.json();
+        setPositions(data.positions || []);
+      } else {
+        setPositions([]);
+      }
+      if (openResponse.ok) {
+        const data = await openResponse.json();
+        setOpenOrders(data.orders || []);
+      } else {
+        setOpenOrders([]);
+      }
+      if (historyResponse.ok) {
+        const data = await historyResponse.json();
+        setOrderHistory(data.orders || []);
+      } else {
+        setOrderHistory([]);
+      }
+    } catch {
+      setPositions([]);
+      setOpenOrders([]);
+      setOrderHistory([]);
     }
   };
 
@@ -203,7 +241,7 @@ function App() {
         <aside className="order panel">
           <div className="panel-title"><b>Order</b><span>Spot</span></div>
           <div className="segmented"><button className={side === "buy" ? "active buy" : ""} onClick={() => setSide("buy")}>Buy</button><button className={side === "sell" ? "active sell" : ""} onClick={() => setSide("sell")}>Sell</button></div>
-          <div className="balance">Available <b>{balance?.USDT?.free != null ? `${Number(balance.USDT.free).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Connect exchange"}</b></div>
+          <div className="balance">Available <b>{balance?.free?.USDT != null ? `${Number(balance.free.USDT).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Connect exchange"}</b></div>
           <label>Order type<select><option>Limit</option><option>Market</option></select></label>
           <label>Price<input value={Number(price).toFixed(2)} readOnly /></label>
           <label>Amount<input placeholder="0.00 BTC" /></label>
@@ -214,8 +252,41 @@ function App() {
       </section>
 
       <section className="bottom panel">
-        <div className="panel-title"><b>Positions & Orders</b><div className="tabs">Positions&nbsp;&nbsp; Open Orders&nbsp;&nbsp; Order History</div></div>
-        <div className="empty"><strong>No active positions</strong><span>Your open positions and orders will appear here.</span></div>
+        <div className="panel-title">
+          <b>Positions & Orders</b>
+          <div className="tabs">
+            <button className={activeTab === "positions" ? "tab active" : "tab"} onClick={() => setActiveTab("positions")}>Positions</button>
+            <button className={activeTab === "open" ? "tab active" : "tab"} onClick={() => setActiveTab("open")}>Open Orders</button>
+            <button className={activeTab === "history" ? "tab active" : "tab"} onClick={() => setActiveTab("history")}>Order History</button>
+          </div>
+        </div>
+        {!selectedExchangeId && (
+          <div className="empty"><strong>Connect an exchange</strong><span>Select a connected exchange to load your trading data.</span></div>
+        )}
+        {selectedExchangeId && activeTab === "positions" && (
+          positions.length ? <div className="data-list">{positions.map((item, index) => (
+            <div className="data-row" key={item.id || item.symbol || index}>
+              <span><b>{item.symbol || "—"}</b><small>{item.side || "—"} · {item.contracts ?? item.amount ?? "—"}</small></span>
+              <span><b>{item.unrealizedPnl ?? item.unrealized_pnl ?? "—"}</b><small>Entry {item.entryPrice ?? item.entry_price ?? "—"}</small></span>
+            </div>
+          ))}</div> : <div className="empty"><strong>No active positions</strong><span>Open futures positions will appear here.</span></div>
+        )}
+        {selectedExchangeId && activeTab === "open" && (
+          openOrders.length ? <div className="data-list">{openOrders.map((item, index) => (
+            <div className="data-row" key={item.id || item.external_order_id || index}>
+              <span><b>{item.symbol}</b><small>{item.side} · {item.type}</small></span>
+              <span><b>{item.amount}</b><small>{item.price ?? "Market"}</small></span>
+            </div>
+          ))}</div> : <div className="empty"><strong>No open orders</strong><span>Open orders for {symbol} will appear here.</span></div>
+        )}
+        {selectedExchangeId && activeTab === "history" && (
+          orderHistory.length ? <div className="data-list">{orderHistory.slice(0, 8).map((item, index) => (
+            <div className="data-row" key={item.id || item.external_order_id || index}>
+              <span><b>{item.symbol}</b><small>{item.side} · {item.type} · {item.status}</small></span>
+              <span><b>{item.filled}/{item.amount}</b><small>{item.average ?? item.price ?? "—"}</small></span>
+            </div>
+          ))}</div> : <div className="empty"><strong>No order history</strong><span>Completed and cancelled orders will appear here.</span></div>
+        )}
       </section>
 
       {authMode && (

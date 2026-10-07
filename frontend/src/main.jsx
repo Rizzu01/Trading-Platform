@@ -107,6 +107,11 @@ function App() {
   };
 
   const connectExchange = async () => {
+    if (!accessToken) {
+      setExchangeMessage("Sign in first.");
+      setAuthMode("login");
+      return;
+    }
     if (!accessToken) { setExchangeMessage("Sign in first."); return; }
     setExchangeMessage("Connecting...");
     try {
@@ -115,7 +120,7 @@ function App() {
       if (!response.ok) throw new Error(data.detail || "Exchange connection failed");
       setApiKey(""); setApiSecret("");
       setExchangeMessage("Exchange connected securely.");
-      loadExchanges();
+      await loadExchanges();
     } catch (error) { setExchangeMessage(error.message); }
   };
 
@@ -151,7 +156,16 @@ function App() {
         <div className="brand">TRADE<span>LAB</span></div>
         <div className="search">⌕ Search markets</div>
         <div className="status"><i className={connected ? "online" : ""} /> {connected ? "Live market data" : "Demo market data"}</div>
-        <button className="profile" onClick={() => { setExchangeOpen(true); setExchangeMessage(""); loadExchanges(); }}>RK</button>
+        <button className="profile" onClick={() => {
+          if (accessToken) {
+            setExchangeOpen(true);
+            setExchangeMessage("");
+            loadExchanges();
+          } else {
+            setAuthMode("login");
+            setAuthMessage("");
+          }
+        }}>RK</button>
       </header>
 
       <section className="marketbar">
@@ -203,6 +217,69 @@ function App() {
         <div className="panel-title"><b>Positions & Orders</b><div className="tabs">Positions&nbsp;&nbsp; Open Orders&nbsp;&nbsp; Order History</div></div>
         <div className="empty"><strong>No active positions</strong><span>Your open positions and orders will appear here.</span></div>
       </section>
+
+      {authMode && (
+        <div className="auth-overlay">
+          <div className="auth-card">
+            <div className="auth-head">
+              <div>
+                <b>{authMode === "register" ? "Create account" : "Welcome back"}</b>
+                <small>{authMode === "register" ? "Start with a secure trading account." : "Sign in to manage exchanges and balances."}</small>
+              </div>
+              <button type="button" onClick={() => setAuthMode(null)}>×</button>
+            </div>
+            {authMode === "register" && (
+              <input value={authName} onChange={(e) => setAuthName(e.target.value)} placeholder="Full name" autoComplete="name" />
+            )}
+            <input value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} placeholder="Email" type="email" autoComplete="email" />
+            <input value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} placeholder="Password" type="password" autoComplete={authMode === "register" ? "new-password" : "current-password"} />
+            {authMessage && <div className="order-message">{authMessage}</div>}
+            <button className="primary" onClick={submitAuth}>{authMode === "register" ? "Create account" : "Sign in"}</button>
+            <button className="auth-switch" onClick={() => { setAuthMode(authMode === "register" ? "login" : "register"); setAuthMessage(""); }}>
+              {authMode === "register" ? "Already have an account? Sign in" : "New here? Create an account"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {exchangeOpen && (
+        <div className="auth-overlay">
+          <div className="auth-card exchange-card">
+            <div className="auth-head">
+              <div>
+                <b>Connect exchange</b>
+                <small>Credentials are encrypted by the backend and are never shown here.</small>
+              </div>
+              <button type="button" onClick={() => setExchangeOpen(false)}>×</button>
+            </div>
+            <select value={exchangeName} onChange={(e) => setExchangeName(e.target.value)}>
+              <option value="binance">Binance</option>
+              <option value="coinswitch">CoinSwitch</option>
+            </select>
+            <select value={marketType} onChange={(e) => setMarketType(e.target.value)}>
+              <option value="spot">Spot</option>
+              <option value="usdm">USDT-M Futures</option>
+              <option value="coinm">Coin-M Futures</option>
+            </select>
+            <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="API key" autoComplete="off" />
+            <input value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} placeholder="API secret" type="password" autoComplete="new-password" />
+            {exchangeMessage && <div className="order-message">{exchangeMessage}</div>}
+            <button className="primary" onClick={connectExchange}>Connect exchange</button>
+            <div className="connected-list">
+              {exchanges.map((exchange) => (
+                <button
+                  className={selectedExchangeId === exchange.id ? "exchange-item selected" : "exchange-item"}
+                  key={exchange.id}
+                  onClick={() => loadBalance(exchange.id)}
+                >
+                  <b>{exchange.exchange_name}</b>
+                  <span>{exchange.market_type} · {exchange.is_active ? "Active" : "Inactive"}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

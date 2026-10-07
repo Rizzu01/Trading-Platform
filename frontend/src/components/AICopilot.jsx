@@ -58,59 +58,25 @@ export default function AICopilot({ open, onClose, symbol, marketType, timeframe
   ], []);
 
   const buildSetup = async () => {
-    if (!context) return;
     setSetupLoading(true);
     setError("");
     try {
-      const ind = context.indicators || {};
-      const price = Number(context.price);
-      const atr = Number(ind.atr14);
-      const ema20 = Number(ind.ema20);
-      const ema50 = Number(ind.ema50);
-      const rsi = Number(ind.rsi14);
-      const adx = Number(ind.adx14);
+      const params = new URLSearchParams({ symbol, market_type: marketType, timeframe });
+      const response = await fetch(\`\${apiBase}/api/v1/ai/trade-setup?\${params}\`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || "Trade setup unavailable.");
+      setSetup(data);
 
-      if (!Number.isFinite(price) || !Number.isFinite(atr)) {
-        throw new Error("ATR/price data is insufficient for a trade setup.");
-      }
-
-      const bullish = ema20 > ema50 && rsi >= 50;
-      const bearish = ema20 < ema50 && rsi <= 50;
-      const direction = bullish ? "LONG" : bearish ? "SHORT" : "NO TRADE";
-      const stopDistance = Math.max(atr * 1.25, price * 0.003);
-      const entry = price;
-      const stopLoss = direction === "LONG" ? entry - stopDistance : direction === "SHORT" ? entry + stopDistance : entry;
-      const takeProfit = direction === "LONG" ? entry + stopDistance * 2 : direction === "SHORT" ? entry - stopDistance * 2 : entry;
-      const agreement = [ema20 > ema50, rsi >= 50, adx >= 20, context.regime?.trend === "bullish", context.regime?.trend === "bearish"]
-        .filter((v) => direction === "LONG" ? v : direction === "SHORT" ? v : false).length;
-      const confidence = direction === "NO TRADE" ? Math.max(25, 100 - Math.abs(rsi - 50) * 2) : Math.min(95, 55 + agreement * 7 + (adx >= 25 ? 8 : 0));
-
-      const next = {
-        direction,
-        entry,
-        stopLoss,
-        takeProfit,
-        riskReward: 2,
-        confidence,
-        strategyAgreement: direction === "NO TRADE" ? 0 : Math.max(2, agreement),
-        rationale: direction === "LONG"
-          ? "EMA20 is above EMA50 and momentum is not bearish."
-          : direction === "SHORT"
-            ? "EMA20 is below EMA50 and momentum is not bullish."
-            : "Trend and momentum are not aligned strongly enough.",
-      };
-      setSetup(next);
-
-      if (direction !== "NO TRADE") {
+      if (data.direction !== "NO TRADE") {
         setRiskLoading(true);
-        const riskResponse = await fetch(`${apiBase}/api/v1/ai/risk`, {
+        const riskResponse = await fetch(\`\${apiBase}/api/v1/ai/risk\`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             balance: Number(balance),
             risk_percent: Number(riskPercent),
-            entry,
-            stop_loss: stopLoss,
+            entry: Number(data.entry),
+            stop_loss: Number(data.stopLoss),
             leverage: Number(leverage),
           }),
         });
@@ -122,6 +88,8 @@ export default function AICopilot({ open, onClose, symbol, marketType, timeframe
       }
     } catch (e) {
       setError(e.message);
+      setSetup(null);
+      setRisk(null);
     } finally {
       setSetupLoading(false);
       setRiskLoading(false);
@@ -200,10 +168,10 @@ export default function AICopilot({ open, onClose, symbol, marketType, timeframe
                 <div><span>Stop Loss</span><b>{n(setup.stopLoss)}</b></div>
                 <div><span>Take Profit</span><b>{n(setup.takeProfit)}</b></div>
                 <div><span>R:R</span><b>1 : {setup.riskReward}</b></div>
-                <div><span>Strategy agreement</span><b>{setup.strategyAgreement}/5</b></div>
+                <div><span>Strategy agreement</span><b>{setup.strategyAgreement}/{setup.strategiesEvaluated}</b></div>
                 <div><span>Max loss</span><b>{risk ? n(risk.maxLoss) : "—"}</b></div>
               </div>
-              <small className="ai-rationale">{setup.rationale}</small>
+              <small className="ai-rationale">{setup.rationale}</small>\n              {setup.votes?.length > 0 && <div className="ai-vote-list">{setup.votes.map((vote) => <span key={vote.strategyId}>{vote.strategy}: <b>{vote.signal}</b></span>)}</div>}
             </>
           ) : (
             <p className="ai-empty">Generate a setup from the current real market context. This is an analytical setup, not an order.</p>

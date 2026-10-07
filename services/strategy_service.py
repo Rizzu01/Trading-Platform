@@ -75,6 +75,8 @@ class StrategyService:
             fee_bps=data.fee_bps,
             slippage_bps=data.slippage_bps,
             market_type=data.market_type,
+            risk_percent=data.risk_percent,
+            leverage=data.leverage,
         )
         result["symbol"] = normalized
         result["timeframe"] = timeframe

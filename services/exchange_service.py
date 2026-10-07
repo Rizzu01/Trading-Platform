@@ -10,12 +10,12 @@ from utils.encryption import decrypt, encrypt
 
 
 class ExchangeService:
-
     @staticmethod
     def create(db: Session, user_id: UUID, data: ExchangeCreate) -> Exchange:
         exchange = Exchange(
             user_id=user_id,
             exchange_name=data.exchange_name,
+            market_type=data.market_type,
             api_key=encrypt(data.api_key),
             api_secret=encrypt(data.api_secret),
             passphrase=encrypt(data.passphrase) if data.passphrase else None,
@@ -31,11 +31,7 @@ class ExchangeService:
 
     @staticmethod
     def get(db: Session, user_id: UUID, exchange_id: UUID) -> Exchange:
-        exchange = (
-            db.query(Exchange)
-            .filter(Exchange.id == exchange_id, Exchange.user_id == user_id)
-            .first()
-        )
+        exchange = db.query(Exchange).filter(Exchange.id == exchange_id, Exchange.user_id == user_id).first()
         if exchange is None:
             raise NotFoundException("Exchange not found.")
         return exchange
@@ -44,16 +40,15 @@ class ExchangeService:
     def update(db: Session, user_id: UUID, exchange_id: UUID, data: ExchangeUpdate) -> Exchange:
         exchange = ExchangeService.get(db, user_id, exchange_id)
         values = data.model_dump(exclude_unset=True)
-        if "exchange_name" in values:
-            exchange.exchange_name = values["exchange_name"]
+        for key in ("exchange_name", "market_type", "is_active"):
+            if key in values:
+                setattr(exchange, key, values[key])
         if "api_key" in values:
             exchange.api_key = encrypt(values["api_key"])
         if "api_secret" in values:
             exchange.api_secret = encrypt(values["api_secret"])
         if "passphrase" in values:
             exchange.passphrase = encrypt(values["passphrase"]) if values["passphrase"] else None
-        if "is_active" in values:
-            exchange.is_active = values["is_active"]
         db.commit()
         db.refresh(exchange)
         return exchange
@@ -69,6 +64,7 @@ class ExchangeService:
         exchange = ExchangeService.get(db, user_id, exchange_id)
         return {
             "exchange": exchange.exchange_name,
+            "market_type": exchange.market_type,
             "api_key": decrypt(exchange.api_key),
             "api_secret": decrypt(exchange.api_secret),
             "passphrase": decrypt(exchange.passphrase) if exchange.passphrase else None,
@@ -77,12 +73,7 @@ class ExchangeService:
     @staticmethod
     def _client(db: Session, user_id: UUID, exchange_id: UUID):
         credentials = ExchangeService.get_credentials(db, user_id, exchange_id)
-        return create_exchange(
-            exchange_name=credentials["exchange"],
-            api_key=credentials["api_key"],
-            api_secret=credentials["api_secret"],
-            passphrase=credentials["passphrase"],
-        )
+        return create_exchange(**credentials)
 
     @staticmethod
     def get_balance(db: Session, user_id: UUID, exchange_id: UUID):
@@ -102,12 +93,7 @@ class ExchangeService:
         if "/" not in symbol and symbol.upper().endswith("USDT"):
             symbol = symbol[:-4] + "/USDT"
         candles = client.get_ohlcv(symbol.upper(), timeframe=timeframe, limit=limit)
-        return {
-            "success": True,
-            "symbol": symbol.upper(),
-            "timeframe": timeframe,
-            "candles": [
-                {"timestamp": c[0], "open": c[1], "high": c[2], "low": c[3], "close": c[4], "volume": c[5]}
-                for c in candles
-            ],
-        }
+        return {"success": True, "symbol": symbol.upper(), "timeframe": timeframe, "candles": [
+            {"timestamp": c[0], "open": c[1], "high": c[2], "low": c[3], "close": c[4], "volume": c[5]}
+            for c in candles
+        ]}

@@ -1,5 +1,7 @@
 name: CI
 
+# Latest integration verification
+
 on:
   push:
     branches: ["main"]

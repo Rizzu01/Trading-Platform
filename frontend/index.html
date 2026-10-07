@@ -4,7 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trading Terminal</title>
-  </head>
+    <script>
+  (() => {
+    try {
+      const preference = localStorage.getItem("tradelab-theme") || "system";
+      const resolved = preference === "system"
+        ? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
+        : preference;
+      document.documentElement.dataset.theme = resolved;
+    } catch {
+      document.documentElement.dataset.theme = "dark";
+    }
+  })();
+</script>
+</head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>

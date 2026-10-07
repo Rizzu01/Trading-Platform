@@ -191,7 +191,14 @@ function App() {
 
     if (theme === "system") {
       media.addEventListener("change", applyTheme);
-      useEffect(() => {
+    }
+
+    return () => {
+      media.removeEventListener("change", applyTheme);
+    };
+  }, [theme]);
+
+  useEffect(() => {
     const handleShortcut = (event) => {
       const tag = event.target?.tagName;
       if (event.key === "/" && tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT" && !event.metaKey && !event.ctrlKey && !event.altKey) {

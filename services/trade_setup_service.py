@@ -23,14 +23,23 @@ def build_trade_setup(symbol: str, market_type: str, timeframe: str) -> dict:
 
     votes = []
     for strategy_id in candidates:
-        signal = strategy_signal(strategy_id, context["candles"])\n        validation = backtest(strategy_id, context["candles"], 10000, 5, 2, market_type, 1.0, 1.0)
+        signal = strategy_signal(strategy_id, context["candles"])
+        validation = backtest(strategy_id, context["candles"], 10000, 5, 2, market_type, 1.0, 1.0)
         votes.append({
             "strategyId": strategy_id,
             "strategy": get_strategy(strategy_id)["name"],
             "signal": _direction(signal.value),
             "confidence": signal.confidence,
             "reason": signal.reason,
-            "stopDistance": signal.stop_distance,\n            "validation": {\n                "returnPct": validation["return_pct"],\n                "maxDrawdownPct": validation["max_drawdown_pct"],\n                "winRatePct": validation["win_rate_pct"],\n                "profitFactor": validation["profit_factor"],\n                "tradeCount": validation["trade_count"],\n                "sharpeRatio": validation["sharpe_ratio"],\n            },
+            "stopDistance": signal.stop_distance,
+            "validation": {
+                "returnPct": validation["return_pct"],
+                "maxDrawdownPct": validation["max_drawdown_pct"],
+                "winRatePct": validation["win_rate_pct"],
+                "profitFactor": validation["profit_factor"],
+                "tradeCount": validation["trade_count"],
+                "sharpeRatio": validation["sharpe_ratio"],
+            },
         })
 
     usable = [v for v in votes if v["signal"] in ("LONG", "SHORT")]
@@ -63,6 +72,14 @@ def build_trade_setup(symbol: str, market_type: str, timeframe: str) -> dict:
 
     agreeing = [v for v in usable if v["signal"] == majority_direction]
     confidence = round(sum(v["confidence"] for v in agreeing) / len(agreeing))
+    live_confidence = confidence
+    evidence_flags = [
+        v["validation"]["profitFactor"] is not None
+        and v["validation"]["profitFactor"] > 1
+        and v["validation"]["returnPct"] > 0
+        for v in agreeing
+    ]
+    evidence_score = round(sum(evidence_flags) / len(evidence_flags) * 100) if evidence_flags else 0
     stop_distances = [float(v["stopDistance"]) for v in agreeing if v["stopDistance"] and v["stopDistance"] > 0]
     atr = float(context["indicators"]["atr14"])
     stop_distance = max(stop_distances) if stop_distances else atr * 2
@@ -80,7 +97,9 @@ def build_trade_setup(symbol: str, market_type: str, timeframe: str) -> dict:
         "stopLoss": stop_loss,
         "takeProfit": take_profit,
         "riskReward": 2.0,
-        "confidence": confidence,\n        "liveConfidence": live_confidence,\n        "historicalEvidenceScore": evidence_score,
+        "confidence": confidence,
+        "liveConfidence": live_confidence,
+        "historicalEvidenceScore": evidence_score,
         "strategyAgreement": agreement,
         "strategiesEvaluated": len(candidates),
         "requiredAgreement": required,

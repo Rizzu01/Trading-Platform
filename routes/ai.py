@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException
 from schemas.ai import AIAnalyzeRequest, AIAnalyzeResponse, RiskRequest
 from services.ai_provider import AIProvider, AIProviderError
 from services.market_context import MarketContextService
-from services.risk_service import calculate_risk
+from services.risk_service import calculate_risk\nfrom services.trade_setup_service import build_trade_setup
 
 router = APIRouter(prefix="/ai", tags=["AI Trading"])
 
@@ -32,7 +32,7 @@ async def analyze(request: AIAnalyzeRequest):
         raise HTTPException(status_code=502, detail=f"Insufficient real-time data to evaluate this setup: {exc}") from exc
 
 
-@router.post("/risk")
+@router.get("/trade-setup")\ndef trade_setup(symbol: str, market_type: str = "spot", timeframe: str = "15m"):\n    try:\n        return build_trade_setup(symbol, market_type, timeframe)\n    except Exception as exc:\n        raise HTTPException(status_code=502, detail=f"Insufficient real-time data to evaluate this setup: {exc}") from exc\n\n\n@router.post("/risk")
 def risk(request: RiskRequest):
     try:
         return calculate_risk(**request.model_dump())

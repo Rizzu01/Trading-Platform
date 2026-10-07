@@ -17,6 +17,7 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [symbol, setSymbol] = useState("BTC/USDT");
   const [candles, setCandles] = useState([]);
+  const [timeframe, setTimeframe] = useState("1h");
   const [side, setSide] = useState("buy");
   const [orderType, setOrderType] = useState("limit");
   const [amount, setAmount] = useState("");
@@ -47,12 +48,12 @@ function App() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${API_BASE}/api/v1/market/ohlcv/${symbol.replace("/", "")}?timeframe=1h&limit=60`, { signal: controller.signal })
+    fetch(`${API_BASE}/api/v1/market/ohlcv/${symbol.replace("/", "")}?timeframe=${timeframe}&limit=60`, { signal: controller.signal })
       .then((response) => response.ok ? response.json() : Promise.reject(new Error("OHLCV request failed")))
       .then((data) => setCandles(data.candles || []))
       .catch(() => setCandles([]));
     return () => controller.abort();
-  }, [symbol]);
+  }, [symbol, timeframe]);
 
   useEffect(() => {
     let socket;
@@ -223,7 +224,7 @@ function App() {
       <header className="topbar">
         <div className="brand">TRADE<span>LAB</span></div>
         <div className="search">⌕ Search markets</div>
-        <div className="status"><i className={connected ? "online" : ""} /> {connected ? "Live market data" : "Demo market data"}</div>
+        <div className="status"><i className={connected ? "online" : ""} /> {connected ? "Live market data" : "Demo market data"}<small>{connected ? "WS" : "Fallback"}</small></div>
         <button className="profile" onClick={() => {
           if (accessToken) {
             setExchangeOpen(true);
@@ -258,7 +259,9 @@ function App() {
         </aside>
 
         <section className="chart panel">
-          <div className="panel-title"><b>{symbol} · 1H</b><div className="tabs">1m&nbsp; 5m&nbsp; 15m&nbsp; 1H&nbsp; 4H&nbsp; 1D</div></div>
+          <div className="panel-title"><b>{symbol} · {timeframe.toUpperCase()}</b><div className="tabs chart-timeframes">
+            {["1m", "5m", "15m", "1h", "4h", "1d"].map((value) => <button key={value} className={timeframe === value ? "tab active" : "tab"} onClick={() => setTimeframe(value)}>{value.toUpperCase()}</button>)}
+          </div></div>
           <div className="chart-area">
             <div className="grid" />
             <svg viewBox="0 0 900 360" preserveAspectRatio="none">

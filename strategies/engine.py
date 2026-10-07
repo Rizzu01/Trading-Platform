@@ -120,11 +120,18 @@ def strategy_signal(strategy_id: str, candles: list[dict], index: int | None = N
     return function(clean, target)
 
 
-def _trade_fee(notional: float, fee_rate: float, slippage_rate: float) -> float:
-    return abs(notional) * fee_rate + abs(notional) * slippage_rate
+def _fee(notional: float, fee_rate: float) -> float:
+    return abs(notional) * fee_rate
 
 
-def backtest(strategy_id: str, candles: list[dict], initial_capital: float, fee_bps: float, slippage_bps: float, market_type: str) -> dict:
+def backtest(
+    strategy_id: str,
+    candles: list[dict],
+    initial_capital: float,
+    fee_bps: float,
+    slippage_bps: float,
+    market_type: str,
+) -> dict:
     clean = _candles(candles)
     strategy = get_strategy(strategy_id)
     if len(clean) < 120:
@@ -139,6 +146,8 @@ def backtest(strategy_id: str, candles: list[dict], initial_capital: float, fee_
     position = 0
     entry_price = None
     entry_time = None
+    entry_notional = 0.0
+    entry_fee = 0.0
     trades = []
     equity_curve = []
     position_pct = 0.25
@@ -156,44 +165,52 @@ def backtest(strategy_id: str, candles: list[dict], initial_capital: float, fee_
         if position != desired:
             if position != 0 and entry_price is not None:
                 exit_price = open_price * (1 - slippage_rate if position > 0 else 1 + slippage_rate)
-                notional = equity * position_pct
-                move_return = (exit_price / entry_price - 1) * position
-                pnl = notional * move_return
-                fees = _trade_fee(notional, fee_rate, slippage_rate)
-                equity += pnl - fees
+                exit_notional = entry_notional
+                gross_pnl = exit_notional * ((exit_price / entry_price - 1) * position)
+                exit_fee = _fee(exit_notional, fee_rate)
+                net_pnl = gross_pnl - exit_fee
+                equity += net_pnl
                 trades.append({
                     "side": "long" if position > 0 else "short",
                     "entry": entry_price,
                     "exit": exit_price,
-                    "return_pct": move_return * 100,
-                    "pnl": pnl - fees,
+                    "return_pct": (gross_pnl / exit_notional * 100) if exit_notional else 0.0,
+                    "pnl": net_pnl - entry_fee,
                     "entry_timestamp": entry_time,
                     "exit_timestamp": candle["timestamp"],
                 })
                 entry_price = None
                 entry_time = None
+                entry_notional = 0.0
+                entry_fee = 0.0
 
             if desired != 0:
                 entry_price = open_price * (1 + slippage_rate if desired > 0 else 1 - slippage_rate)
+                entry_notional = equity * position_pct
+                entry_fee = _fee(entry_notional, fee_rate)
+                equity -= entry_fee
                 entry_time = candle["timestamp"]
 
             position = desired
 
-        equity_curve.append(equity)
+        marked_equity = equity
+        if position != 0 and entry_price is not None:
+            unrealized = entry_notional * ((close_price / entry_price - 1) * position)
+            marked_equity += unrealized
+        equity_curve.append(marked_equity)
 
     if position != 0 and entry_price is not None:
-        final = clean[-1]["close"] * (1 - slippage_rate if position > 0 else 1 + slippage_rate)
-        notional = equity * position_pct
-        move_return = (final / entry_price - 1) * position
-        pnl = notional * move_return
-        fees = _trade_fee(notional, fee_rate, slippage_rate)
-        equity += pnl - fees
+        exit_price = clean[-1]["close"] * (1 - slippage_rate if position > 0 else 1 + slippage_rate)
+        gross_pnl = entry_notional * ((exit_price / entry_price - 1) * position)
+        exit_fee = _fee(entry_notional, fee_rate)
+        net_pnl = gross_pnl - exit_fee
+        equity += net_pnl
         trades.append({
             "side": "long" if position > 0 else "short",
             "entry": entry_price,
-            "exit": final,
-            "return_pct": move_return * 100,
-            "pnl": pnl - fees,
+            "exit": exit_price,
+            "return_pct": (gross_pnl / entry_notional * 100) if entry_notional else 0.0,
+            "pnl": net_pnl - entry_fee,
             "entry_timestamp": entry_time,
             "exit_timestamp": clean[-1]["timestamp"],
         })
@@ -228,6 +245,6 @@ def backtest(strategy_id: str, candles: list[dict], initial_capital: float, fee_
         "trades": trades[-25:],
         "validation": {
             "status": "screening",
-            "note": "This is an engine-level screening backtest, not a guarantee of future profitability.",
+            "note": "Screening backtest includes execution fees, slippage, next-bar entries, and mark-to-market drawdown; it is not a guarantee of future profitability.",
         },
     }

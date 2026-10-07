@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
+
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const WS_BASE = API_BASE.replace(/^http/, "ws");
 
 const markets = [
   ["BTC/USDT", "67,842.10", "+2.41%"],
@@ -10,44 +13,79 @@ const markets = [
 ];
 
 function App() {
+  const [ticker, setTicker] = useState(null);
+  const [connected, setConnected] = useState(false);
+  const [symbol, setSymbol] = useState("BTC/USDT");
+
+  useEffect(() => {
+    let socket;
+    try {
+      socket = new WebSocket(`${WS_BASE}/ws/market/binance/${symbol.replace("/", "")}`);
+      socket.onopen = () => setConnected(true);
+      socket.onclose = () => setConnected(false);
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "ticker") setTicker(data);
+        } catch {
+          setConnected(false);
+        }
+      };
+      socket.onerror = () => setConnected(false);
+    } catch {
+      setConnected(false);
+    }
+    return () => socket?.close();
+  }, [symbol]);
+
+  const price = ticker?.last ?? 67842.10;
+  const high = ticker?.high ?? 68421.90;
+  const low = ticker?.low ?? 65903.20;
+  const volume = ticker?.volume ?? 2.84e9;
+
+  const formattedPrice = useMemo(
+    () => Number(price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    [price]
+  );
+
   return (
     <main className="terminal">
       <header className="topbar">
         <div className="brand">TRADE<span>LAB</span></div>
         <div className="search">⌕ Search markets</div>
-        <div className="status"><i /> System operational</div>
+        <div className="status"><i className={connected ? "online" : ""} /> {connected ? "Live market data" : "Demo market data"}</div>
         <button className="profile">RK</button>
       </header>
 
       <section className="marketbar">
-        <div className="pair"><strong>BTC/USDT</strong><small>Bitcoin / Tether</small></div>
-        <div><b>$67,842.10</b><small className="up">+2.41%</small></div>
-        <div><small>24h High</small><b>$68,421.90</b></div>
-        <div><small>24h Low</small><b>$65,903.20</b></div>
-        <div><small>24h Volume</small><b>$2.84B</b></div>
+        <div className="pair"><strong>{symbol}</strong><small>Bitcoin / Tether</small></div>
+        <div><b>${formattedPrice}</b><small className="up">Live</small></div>
+        <div><small>24h High</small><b>${Number(high).toLocaleString()}</b></div>
+        <div><small>24h Low</small><b>${Number(low).toLocaleString()}</b></div>
+        <div><small>24h Volume</small><b>${(Number(volume) / 1e9).toFixed(2)}B</b></div>
       </section>
 
       <section className="workspace">
         <aside className="markets panel">
           <div className="panel-title"><b>Markets</b><span>Spot</span></div>
           <input placeholder="Search pair" />
-          {markets.map(([pair, price, change]) => (
-            <div className="market-row" key={pair}>
+          {markets.map(([pair, fallbackPrice, change]) => (
+            <button className="market-row market-button" key={pair} onClick={() => setSymbol(pair)}>
               <div><b>{pair}</b><small>USDT</small></div>
-              <strong>{price}</strong>
+              <strong>{pair === symbol ? formattedPrice : fallbackPrice}</strong>
               <em className={change.startsWith("-") ? "down" : "up"}>{change}</em>
-            </div>
+            </button>
           ))}
         </aside>
 
         <section className="chart panel">
-          <div className="panel-title"><b>BTC/USDT · 1H</b><div className="tabs">1m&nbsp; 5m&nbsp; 15m&nbsp; 1H&nbsp; 4H&nbsp; 1D</div></div>
+          <div className="panel-title"><b>{symbol} · 1H</b><div className="tabs">1m&nbsp; 5m&nbsp; 15m&nbsp; 1H&nbsp; 4H&nbsp; 1D</div></div>
           <div className="chart-area">
             <div className="grid" />
             <svg viewBox="0 0 900 360" preserveAspectRatio="none">
               <polyline points="0,270 60,245 120,260 180,205 240,220 300,170 360,190 420,125 480,155 540,105 600,140 660,92 720,120 780,70 840,94 900,45" />
             </svg>
-            <span className="price-line">$67,842</span>
+            <span className="price-line">${formattedPrice}</span>
           </div>
         </section>
 
@@ -56,11 +94,11 @@ function App() {
           <div className="segmented"><button className="active buy">Buy</button><button>Sell</button></div>
           <div className="balance">Available <b>$12,480.32</b></div>
           <label>Order type<select><option>Limit</option><option>Market</option></select></label>
-          <label>Price<input value="67842.10" readOnly /></label>
+          <label>Price<input value={Number(price).toFixed(2)} readOnly /></label>
           <label>Amount<input placeholder="0.00 BTC" /></label>
           <div className="slider"><span /><span /><span /><span /><span /></div>
           <div className="summary"><span>Est. cost</span><b>$0.00 USDT</b></div>
-          <button className="primary">Buy BTC</button>
+          <button className="primary">Buy {symbol.split("/")[0]}</button>
         </aside>
       </section>
 

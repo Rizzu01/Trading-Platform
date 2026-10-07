@@ -133,3 +133,6 @@ small { color: #747b85; font-size: 11px; }
 .status small { color:#59616a; font-size:9px; text-transform:uppercase; letter-spacing:.05em; }
 .market-button { width:100%; border:0; text-align:left; cursor:pointer; }
 .market-button:focus-visible { outline:1px solid #b9ee45; outline-offset:-1px; }
+
+.chart-state { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:2; padding:8px 10px; border:1px solid #252a30; border-radius:6px; background:#0d0f12; color:#8d969f; font-size:11px; }
+.chart-state.error { color:#ff858b; }

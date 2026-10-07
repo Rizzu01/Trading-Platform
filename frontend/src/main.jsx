@@ -17,6 +17,11 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [symbol, setSymbol] = useState("BTC/USDT");
   const [candles, setCandles] = useState([]);
+  const [side, setSide] = useState("buy");
+  const [orderType, setOrderType] = useState("limit");
+  const [amount, setAmount] = useState("");
+  const [priceInput, setPriceInput] = useState("");
+  const [orderMessage, setOrderMessage] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -66,6 +71,9 @@ function App() {
     }).join(" ");
   }, [candles]);
 
+  const effectivePrice = Number(priceInput || price || 0);
+  const estimatedCost = Number(amount || 0) * effectivePrice;
+
   const formattedPrice = useMemo(
     () => Number(price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     [price]
@@ -114,7 +122,7 @@ function App() {
 
         <aside className="order panel">
           <div className="panel-title"><b>Order</b><span>Spot</span></div>
-          <div className="segmented"><button className="active buy">Buy</button><button>Sell</button></div>
+          <div className="segmented"><button className={side === "buy" ? "active buy" : ""} onClick={() => setSide("buy")}>Buy</button><button className={side === "sell" ? "active sell" : ""} onClick={() => setSide("sell")}>Sell</button></div>
           <div className="balance">Available <b>$12,480.32</b></div>
           <label>Order type<select><option>Limit</option><option>Market</option></select></label>
           <label>Price<input value={Number(price).toFixed(2)} readOnly /></label>

@@ -111,6 +111,36 @@ def get_balance(
         exchange_id=exchange_id,
     )
 
+@router.get("/{exchange_id}/positions")
+def get_positions(
+    exchange_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ExchangeService.get_positions(
+        db=db,
+        user_id=current_user.id,
+        exchange_id=exchange_id,
+    )
+
+
+@router.post("/{exchange_id}/leverage")
+def set_leverage(
+    exchange_id: UUID,
+    symbol: str,
+    leverage: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ExchangeService.set_leverage(
+        db=db,
+        user_id=current_user.id,
+        exchange_id=exchange_id,
+        symbol=symbol,
+        leverage=leverage,
+    )
+
+
 @router.get("/{exchange_id}/ticker/{symbol}")
 def get_ticker(
     exchange_id: UUID,

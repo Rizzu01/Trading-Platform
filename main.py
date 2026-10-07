@@ -7,6 +7,7 @@ from core.exceptions import NotFoundException
 from core.handlers import register_exception_handlers
 from core.logger import logger
 from core.responses import ApiResponse
+from websocket.routes import router as websocket_router
 
 
 app = FastAPI(
@@ -28,6 +29,7 @@ app.add_middleware(
 
 register_exception_handlers(app)
 app.include_router(api_v1_router)
+app.include_router(websocket_router)
 
 
 @app.get("/")

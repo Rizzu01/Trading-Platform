@@ -839,79 +839,161 @@ function App() {
 
       <section className="workspace">
         <aside className="markets panel">
-          <div className="panel-title"><b>Markets</b><span>USDT</span></div>
-          <input
-            value={marketSearch}
-            onChange={(e) => setMarketSearch(e.target.value)}
-            placeholder="Search pair"
-            aria-label="Filter markets"
-          />
-          <div className="market-filter-row">
-            <button className="active" type="button">All</button>
-            <button type="button" disabled title="Favorites are not backed by persisted market preferences yet">Favorites</button>
+          <div className="panel-title">
+            <b>Markets</b>
+            <span>4 pairs · ⋯ · −</span>
           </div>
-          {filteredMarkets.map((item) => {
-            const data = marketData[item.symbol.replace("/", "")] || null;
-            const change = Number.isFinite(Number(data?.changePercent)) ? Number(data.changePercent) : null;
-            return (
-              <button
-                className={`market-row market-button ${item.symbol === symbol ? "selected" : ""}`}
-                key={item.symbol}
-                onClick={() => { setSymbol(item.symbol); setPriceInput(""); }}
-              >
-                <div className="market-main">
-                  <span className="favorite" aria-hidden="true">☆</span>
-                  <span>
-                    <b>{item.symbol}</b>
-                    <small>{item.name}</small>
+
+          <div className="market-search">
+            <label>Search markets</label>
+            <div className="market-search-field">
+              <input
+                value={marketSearch}
+                onChange={(e) => setMarketSearch(e.target.value)}
+                placeholder="Symbol or token"
+                aria-label="Filter markets"
+              />
+              <span>⌕</span>
+            </div>
+          </div>
+
+          <div className="market-filter-row">
+            <button type="button" disabled title="Favorites are not backed by persisted market preferences yet">Favorites</button>
+            <button className="active" type="button">USDT</button>
+            <button type="button" disabled title="USDC pairs are not connected to this market list yet">USDC</button>
+            <button type="button" disabled title="INR pairs are not connected to this market list yet">INR</button>
+          </div>
+
+          <div className="market-table-header">
+            <span>Pair</span>
+            <span>Price / 24h</span>
+          </div>
+
+          <div className="market-list">
+            {filteredMarkets.map((item) => {
+              const data = marketData[item.symbol.replace("/", "")] || null;
+              const change = Number.isFinite(Number(data?.changePercent)) ? Number(data.changePercent) : null;
+              return (
+                <button
+                  className={\`market-row market-button \${item.symbol === symbol ? "selected" : ""}\`}
+                  key={item.symbol}
+                  type="button"
+                  onClick={() => { setSymbol(item.symbol); setPriceInput(""); }}
+                >
+                  <span className="market-main">
+                    <span className="favorite" aria-hidden="true">☆</span>
+                    <span>
+                      <b>{item.symbol}</b>
+                      <small>{item.name}</small>
+                    </span>
                   </span>
-                </div>
-                <strong>{data?.last != null ? formatMarketNumber(data.last, 2) : "—"}</strong>
-                <em className={change != null && change >= 0 ? "up" : "down"}>
-                  {change == null ? "—" : `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`}
-                </em>
-              </button>
-            );
-          })}
+                  <span className="market-snapshot">
+                    <b>{data?.last != null ? formatMarketNumber(data.last, 2) : "—"}</b>
+                    <em className={change != null && change >= 0 ? "up" : "down"}>
+                      {change == null ? "—" : \`\${change >= 0 ? "+" : ""}\${change.toFixed(2)}%\`}
+                    </em>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="evidence-note">
+            <b>Reference snapshot · not live</b>
+            <span>USD and INR markets are not supplied by the current adapter.</span>
+          </div>
         </aside>
 
         <section className="chart panel">
-          <div className="panel-title chart-heading">
-            <div>
-              <b>{symbol}</b>
-              <small>{MARKETS.find((item) => item.symbol === symbol)?.name || "Market"}</small>
-            </div>
-            <div className="tabs chart-timeframes">
+          <div className="panel-title">
+            <b>{symbol} · {MARKETS.find((item) => item.symbol === symbol)?.name || "Market"}</b>
+            <span>Disconnected · stale snapshot · ⋯ · −</span>
+          </div>
+
+          <div className="chart-toolbar">
+            <div className="chart-timeframes">
               {MARKET_TIMEFRAMES.map((value) => (
-                <button key={value} className={timeframe === value ? "tab active" : "tab"} onClick={() => setTimeframe(value)}>
+                <button key={value} className={timeframe === value ? "active" : ""} type="button" onClick={() => setTimeframe(value)}>
                   {value.toUpperCase()}
                 </button>
               ))}
             </div>
+            <div className="chart-tools">
+              <button type="button" disabled>⌖</button>
+              <button type="button" disabled>◉</button>
+              <button type="button" disabled>−</button>
+              <button type="button" disabled>□</button>
+              <button type="button" disabled>⌁</button>
+              <button type="button" disabled>📏</button>
+              <button type="button" disabled>◌</button>
+              <button type="button" disabled>🔒</button>
+              <button type="button" disabled>◒ Chart type</button>
+              <button type="button" disabled>⚙</button>
+              <button type="button" disabled>⛶</button>
+            </div>
           </div>
-          <MarketChart
-            candles={marketType === "spot" ? candles : []}
-            symbol={symbol}
-            connected={marketType === "spot" ? chartConnected : false}
-            loading={marketType === "spot" ? marketLoading : false}
-            error={marketType === "spot" ? marketError : "Futures market data is not connected to the terminal yet."}
-            theme={theme}
-          />
+
+          <div className="chart-area">
+            <div className="chart-tools-rail">
+              <button type="button" disabled>⌖</button>
+              <button type="button" disabled>◉</button>
+              <button type="button" disabled>−</button>
+              <button type="button" disabled>□</button>
+              <button type="button" disabled>⌁</button>
+              <button type="button" disabled>📏</button>
+              <button type="button" disabled>◌</button>
+              <button type="button" disabled>🔒</button>
+            </div>
+            <div className="chart-stage">
+              <MarketChart
+                candles={marketType === "spot" ? candles : []}
+                symbol={symbol}
+                connected={marketType === "spot" ? chartConnected : false}
+                loading={marketType === "spot" ? marketLoading : false}
+                error={marketType === "spot" ? marketError : "Futures market data is not connected to the terminal yet."}
+                theme={theme}
+              />
+            </div>
+          </div>
+
+          <div className="chart-source-row">
+            <span>{marketType === "spot" ? "Historical source plot · original candles and volume · not live" : "Futures market source unavailable"}</span>
+            <span>Volume · Crosshair · UTC</span>
+          </div>
+
           <div className="market-data-panels">
-            <section className="panel mini-panel">
-              <div className="panel-title"><b>Order book</b><span>Depth / Trades · ⋯ · −</span></div>
-              <div className="mini-meta"><span>Depth · unavailable</span><span>0.01 / 0.1 / 1 · disabled</span></div>
-              <div className="mini-table-heading"><span>Price (USDT)</span><span>Amount (BTC)</span><span>Total (BTC)</span></div>
-              <div className="availability-card mini-empty">
+            <section className="mini-panel">
+              <div className="panel-title">
+                <b>Order book</b>
+                <span>Depth / Trades · ⋯ · −</span>
+              </div>
+              <div className="mini-meta">
+                <span>Depth · unavailable</span>
+                <span>0.01 / 0.1 / 1 · disabled</span>
+              </div>
+              <div className="mini-table-header">
+                <span>Price (USDT)</span>
+                <span>Amount (BTC)</span>
+                <span>Total (BTC)</span>
+              </div>
+              <div className="mini-empty">
                 <strong>Order book unavailable</strong>
                 <span>The connected market-data adapter does not currently provide live depth data.</span>
                 <small>Requirement: authenticated/public depth WebSocket stream.</small>
               </div>
             </section>
-            <section className="panel mini-panel">
-              <div className="panel-title"><b>Recent trades</b><span>Not supplied · ⋯ · −</span></div>
-              <div className="mini-table-heading"><span>Price (USDT)</span><span>Amount (BTC)</span><span>Time</span></div>
-              <div className="availability-card mini-empty recent">
+
+            <section className="mini-panel">
+              <div className="panel-title">
+                <b>Recent trades</b>
+                <span>Not supplied · ⋯ · −</span>
+              </div>
+              <div className="mini-table-header">
+                <span>Price (USDT)</span>
+                <span>Amount (BTC)</span>
+                <span>Time</span>
+              </div>
+              <div className="mini-empty recent">
                 <strong>Recent trades unavailable</strong>
                 <span>The current backend does not expose a normalized live trade stream.</span>
               </div>
@@ -920,23 +1002,20 @@ function App() {
         </section>
 
         <aside className="order panel">
-          <div className="panel-title"><b>Order entry</b><span>{marketType === "usdm" ? "USDT-M" : "Spot"}</span></div>
-          {marketType === "usdm" && (
-            <div className="notice warning">
-              Binance USDT-M is connected through the existing adapter. Leverage is exchange-configured here; margin-mode controls are not exposed until the backend adds a margin-mode endpoint.
-            </div>
-          )}
-          <div className="segmented">
-            <button className={side === "buy" ? "active buy" : ""} onClick={() => setSide("buy")}>Buy</button>
-            <button className={side === "sell" ? "active sell" : ""} onClick={() => setSide("sell")}>Sell</button>
+          <div className="panel-title">
+            <b>Order entry</b>
+            <span>{marketType === "usdm" ? "USDT-M" : "Spot"} · ⋯ · −</span>
           </div>
 
-          <div className="balance-card">
-            <div className="balance-top">
-              <span>Available {quoteAsset}</span>
-              <b>{quoteBalance ? formatMarketNumber(quoteBalance.free, 2) : "—"}</b>
+          {marketType === "usdm" && (
+            <div className="notice warning">
+              Futures execution is intentionally unavailable until the terminal has a dedicated futures market feed and order flow.
             </div>
-            <small>{selectedExchange && selectedMarketMatchesMode ? `${selectedExchange.exchange_name} · ${selectedExchange.market_type}` : `Connect a ${marketType === "usdm" ? "USDT-M futures" : "spot"} account to load this balance.`}</small>
+          )}
+
+          <div className="segmented">
+            <button className={side === "buy" ? "active buy" : ""} type="button" onClick={() => setSide("buy")}>Buy</button>
+            <button className={side === "sell" ? "active sell" : ""} type="button" onClick={() => setSide("sell")}>Sell</button>
           </div>
 
           <div className="order-type-tabs">
@@ -944,23 +1023,34 @@ function App() {
             <button className={orderType === "limit" ? "active" : ""} type="button" onClick={() => { setOrderType("limit"); setOrderMessage(""); }}>Limit</button>
           </div>
 
+          <div className="balance-display">
+            <span>Available {quoteAsset} balance</span>
+            <b>{quoteBalance ? formatMarketNumber(quoteBalance.free, 2) : "—"}</b>
+            <small>{selectedExchange && selectedMarketMatchesMode ? \`\${selectedExchange.exchange_name} · \${selectedExchange.market_type}\` : "Authentication required"}</small>
+          </div>
+
           {orderType === "limit" && (
-            <label>Limit price
-              <input value={priceInput} onChange={(e) => setPriceInput(e.target.value)} inputMode="decimal" placeholder={price != null ? formattedPrice : "Live price unavailable"} />
+            <label className="order-field">Price
+              <div className="field-with-unit">
+                <input value={priceInput} onChange={(e) => setPriceInput(e.target.value)} inputMode="decimal" placeholder={price != null ? formattedPrice : "Live price unavailable"} />
+                <span>{quoteAsset}</span>
+              </div>
             </label>
           )}
 
-          <label>Amount
-            <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder={`0.00 ${baseAsset}`} />
+          <label className="order-field">Amount
+            <div className="field-with-unit">
+              <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" />
+              <span>{baseAsset}</span>
+            </div>
           </label>
 
-          {orderType === "market" && <div className="estimate-row"><span>Estimated price</span><b>{price == null ? "—" : `$${formattedPrice}`}</b></div>}
           <div className="percentage-row">
             {[25, 50, 75, 100].map((pct) => (
               <button
                 key={pct}
                 type="button"
-                disabled={!quoteBalance && side === "buy" || !baseBalance && side === "sell"}
+                disabled={(!quoteBalance && side === "buy") || (!baseBalance && side === "sell")}
                 onClick={() => {
                   const source = side === "buy" ? quoteBalance?.free : baseBalance?.free;
                   if (!Number.isFinite(source) || !effectivePrice || effectivePrice <= 0) return;
@@ -973,30 +1063,34 @@ function App() {
             ))}
           </div>
 
-          <div className="summary"><span>Estimated total</span><b>{estimatedCost > 0 ? `${formatMarketNumber(estimatedCost, 2)} ${quoteAsset}` : "—"}</b></div>
-          <div className="summary"><span>Trading fee</span><b>—</b></div>
-          <small className="hint">Fee data is not exposed by the current backend adapter, so it is not estimated here.</small>
+          <div className="estimate">
+            <div><span>Estimated total</span><b>{estimatedCost > 0 ? \`\${formatMarketNumber(estimatedCost, 2)} \${quoteAsset}\` : "—"}</b></div>
+            <div><span>Fee</span><b>Unavailable</b></div>
+            <div><span>Reference price</span><b>{price == null ? "—" : \`\${formatMarketNumber(price, 2)} \${quoteAsset}\`}</b></div>
+            <small>Reference price only · not an executable quote</small>
+          </div>
 
           {orderMessage && <div className="order-message">{orderMessage}</div>}
 
-          <button className="primary" disabled={orderSubmitting || !selectedExchangeId || !selectedMarketMatchesMode || !orderPriceAvailable || marketType === "usdm"} onClick={previewOrder}>
+          <button
+            className="primary"
+            disabled={orderSubmitting || !selectedExchangeId || !selectedMarketMatchesMode || !orderPriceAvailable || marketType === "usdm"}
+            onClick={previewOrder}
+          >
             {marketType === "usdm"
               ? "Futures trading unavailable"
               : orderSubmitting
                 ? "Submitting…"
                 : !selectedExchangeId
-                  ? "Connect exchange first"
+                  ? "Connect account"
                   : !selectedMarketMatchesMode
-                    ? `Connect ${marketType === "spot" ? "Spot" : "Futures"} account`
+                    ? \`Connect \${marketType === "spot" ? "Spot" : "Futures"} account\`
                     : !orderPriceAvailable
                       ? (orderType === "market" ? "Live price unavailable" : "Enter limit price")
-                      : `Preview ${side === "buy" ? "Buy" : "Sell"} ${baseAsset}`}
+                      : \`Preview \${side === "buy" ? "Buy" : "Sell"} \${baseAsset}\`}
           </button>
 
-          <div className="availability-card">
-            <strong>Supported order types</strong>
-            <span>Market + Limit are implemented by the backend adapter.</span>
-          </div>
+          <small className="order-footnote">Connect an account and obtain a validated quote to preview an order.</small>
         </aside>
       </section>
 
@@ -1136,6 +1230,11 @@ function App() {
           </div></div> : <div className="empty"><strong>No order history</strong><span>Completed and cancelled orders will appear here.</span></div>
         )}
       </section>
+
+      <footer className="terminal-footer">
+        <span>TRADING LAB / Evidence-safe workspace</span>
+        <span>{displayedMarketConnection === "connected" ? "Live market feed" : "Reference snapshot · not live"} · Account {selectedExchangeId ? "connected" : "not connected"} · Market + Limit only</span>
+      </footer>
 
       {previewOpen && (
         <div className="auth-overlay">

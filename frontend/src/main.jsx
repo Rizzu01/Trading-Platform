@@ -266,12 +266,12 @@ function App() {
         </section>
 
         <aside className="order panel">
-          <div className="panel-title"><b>Order</b><span>Spot</span></div>
+          <div className="panel-title"><b>Order</b><span>{marketType === "usdm" ? "USDT-M" : marketType === "coinm" ? "Coin-M" : "Spot"}</span></div>
           <div className="segmented"><button className={side === "buy" ? "active buy" : ""} onClick={() => setSide("buy")}>Buy</button><button className={side === "sell" ? "active sell" : ""} onClick={() => setSide("sell")}>Sell</button></div>
           <div className="balance">Available <b>{balance?.free?.USDT != null ? `${Number(balance.free.USDT).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Connect exchange"}</b></div>
-          <label>Order type<select><option>Limit</option><option>Market</option></select></label>
-          <label>Price<input value={Number(price).toFixed(2)} readOnly /></label>
-          <label>Amount<input placeholder="0.00 BTC" /></label>
+          <label>Order type<select value={orderType} onChange={(e) => { setOrderType(e.target.value); setOrderMessage(""); }}><option value="limit">Limit</option><option value="market">Market</option></select></label>
+          <label>Price<input value={orderType === "market" ? "Market price" : priceInput || Number(price).toFixed(2)} onChange={(e) => setPriceInput(e.target.value)} readOnly={orderType === "market"} /></label>
+          <label>Amount<input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder={`0.00 ${symbol.split("/")[0]}`} /></label>
           <div className="slider"><span /><span /><span /><span /><span /></div>
           <div className="summary"><span>Est. cost</span><b>{estimatedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT</b></div>
           {orderMessage && <div className="order-message">{orderMessage}</div>}
@@ -332,7 +332,7 @@ function App() {
               <div><span>Pair</span><b>{symbol}</b></div>
               <div><span>Type</span><b>{orderType.toUpperCase()}</b></div>
               <div><span>Amount</span><b>{amount} {symbol.split("/")[0]}</b></div>
-              {orderType === "limit" && <div><span>Limit price</span><b>{Number(priceInput).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}</b></div>}
+              {orderType === "limit" && <div><span>Limit price</span><b>{Number(priceInput || price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}</b></div>}
               <div><span>Estimated cost</span><b>{estimatedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT</b></div>
               <div><span>Exchange</span><b>{exchanges.find((item) => item.id === selectedExchangeId)?.exchange_name || "Connected exchange"}</b></div>
             </div>

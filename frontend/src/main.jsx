@@ -91,7 +91,8 @@ function App() {
     try {
       const response = await fetch(`${API_BASE}/api/v1/exchange/${exchangeId}/balance`, { headers: { Authorization: `Bearer ${accessToken}` } });
       if (!response.ok) throw new Error("Unable to load balance.");
-      setBalance(await response.json());
+      const data = await response.json();
+      setBalance(data.balances || {});
       setSelectedExchangeId(exchangeId);
     } catch (error) {
       setExchangeMessage(error.message);

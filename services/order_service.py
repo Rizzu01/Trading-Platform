@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from exchanges.factory import create_exchange
 from models.order import Order, OrderSide, OrderStatus, OrderType
 from schemas.order import LimitOrderRequest, MarketOrderRequest
+from core.exceptions import NotSupportedException
 from services.exchange_service import ExchangeService
 
 
@@ -186,24 +187,47 @@ class OrderService:
 
     @staticmethod
     def get_open_orders(db: Session, user_id: UUID, exchange_id: UUID, symbol: str | None = None):
-        query = db.query(Order).filter(
-            Order.user_id == user_id,
-            Order.exchange_id == exchange_id,
-            Order.status == OrderStatus.OPEN,
-        )
-        if symbol:
-            query = query.filter(Order.symbol == _normalize_symbol(symbol).upper())
-        return {"success": True, "orders": [_serialize_order(item) for item in query.order_by(Order.created_at.desc()).all()]}
+        exchange = OrderService._client(db, user_id, exchange_id)
+        if not hasattr(exchange, "get_open_orders"):
+            raise NotSupportedException("Open orders are not supported by this exchange adapter.")
+
+        normalized = _normalize_symbol(symbol) if symbol else None
+        raw_orders = exchange.get_open_orders(normalized)
+        records = [
+            _persist_order(
+                db,
+                user_id,
+                exchange_id,
+                item,
+                str(item.get("symbol") or normalized or ""),
+                OrderSide(str(item.get("side") or "buy").lower()),
+                OrderType(str(item.get("type") or "limit").lower()),
+            )
+            for item in raw_orders
+        ]
+        return {"success": True, "orders": [_serialize_order(item) for item in records], "source": "exchange"}
 
     @staticmethod
     def order_history(db: Session, user_id: UUID, exchange_id: UUID, symbol: str | None = None):
-        query = db.query(Order).filter(
-            Order.user_id == user_id,
-            Order.exchange_id == exchange_id,
-        )
-        if symbol:
-            query = query.filter(Order.symbol == _normalize_symbol(symbol).upper())
-        return {"success": True, "orders": [_serialize_order(item) for item in query.order_by(Order.created_at.desc()).all()]}
+        exchange = OrderService._client(db, user_id, exchange_id)
+        if not hasattr(exchange, "get_order_history"):
+            raise NotSupportedException("Order history is not supported by this exchange adapter.")
+
+        normalized = _normalize_symbol(symbol) if symbol else None
+        raw_orders = exchange.get_order_history(normalized)
+        records = [
+            _persist_order(
+                db,
+                user_id,
+                exchange_id,
+                item,
+                str(item.get("symbol") or normalized or ""),
+                OrderSide(str(item.get("side") or "buy").lower()),
+                OrderType(str(item.get("type") or "limit").lower()),
+            )
+            for item in raw_orders
+        ]
+        return {"success": True, "orders": [_serialize_order(item) for item in records], "source": "exchange"}
 
     @staticmethod
     def cancel_order(db: Session, user_id: UUID, exchange_id: UUID, order_id: str, symbol: str):

@@ -48,19 +48,14 @@ class CoinSwitchExchange:
 
         prepared = req.prepare()
 
-        print("BODY SENT:")
-        print(prepared.body)
-
         session = requests.Session()
-        response = session.send(prepared)
-
-        print("URL:", url)
-        print("Status:", response.status_code)
-        print("Body:", response.text)
+        response = session.send(prepared, timeout=30)
 
         response.raise_for_status()
-
-        return response.json()
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise Exception("CoinSwitch returned an invalid response.") from exc
 
     def validate_credentials(self):
         try:
@@ -69,9 +64,7 @@ class CoinSwitchExchange:
                 endpoint="/trade/api/v2/user/portfolio",
             )
         except Exception as e:
-            raise Exception(
-                f"CoinSwitch Authentication Failed: {str(e)}"
-            )
+            raise Exception("CoinSwitch authentication failed. Verify the API key and API secret.") from e
 
     def get_balance(self):
         response = self._request(

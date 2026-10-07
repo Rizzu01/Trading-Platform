@@ -2664,3 +2664,116 @@ body {
     display: none;
   }
 }
+
+
+/* Figma-aligned order type tabs */
+.order-type-tabs {
+  height: 36px;
+  display: flex;
+  align-items: stretch;
+  gap: 18px;
+  margin: 8px 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.order-type-tabs button {
+  position: relative;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.order-type-tabs button.active {
+  color: var(--accent);
+}
+
+.order-type-tabs button.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+}
+
+/* Reference account CTA should stay a real button, not a visual pseudo-element. */
+.top-actions .profile {
+  width: 124px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #0B1119;
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.top-actions .profile::after {
+  content: none;
+}
+
+/* Figma-style account data table */
+.account-balance-table {
+  min-height: 210px;
+  width: 100%;
+}
+
+.balance-row {
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr 1fr 1.1fr .7fr;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 9px;
+  font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.balance-heading {
+  min-height: 30px;
+  border-top: 0;
+  color: var(--text-muted);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 8px;
+}
+
+.balance-row span:first-child b {
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-weight: 500;
+}
+
+.balance-row small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 7px;
+}
+
+.balance-row .row-action {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0;
+}
+
+.account-workspace .empty.small {
+  min-height: 160px;
+}
+
+/* Existing JSX keeps its functional account menu, but visual hierarchy matches the reference CTA. */
+.account-wrap .account-menu {
+  top: calc(100% + 8px);
+}
+
+/* Keep unsupported/futures-only Positions out of the spot tab row. */
+.account-tabs .disabled {
+  opacity: .52;
+}

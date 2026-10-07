@@ -4,6 +4,7 @@ import "./styles.css";
 import MarketChart from "./components/MarketChart";
 import StrategyLab from "./components/StrategyLab";
 import AICopilot from "./components/AICopilot";
+import PaperTradingPanel from "./components/PaperTradingPanel";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 const BINANCE_DATA_BASE = "https://data-api.binance.vision";
@@ -166,6 +167,7 @@ function App() {
   const [scannerLoading, setScannerLoading] = useState(false);
   const [scannerResults, setScannerResults] = useState([]);
   const [scannerError, setScannerError] = useState("");
+  const [paperTradingOpen, setPaperTradingOpen] = useState(false);
   const [chartToolState, setChartToolState] = useState({
     crosshair: true,
     volume: true,
@@ -834,7 +836,9 @@ function App() {
         <nav className="topnav" aria-label="Primary navigation">
           <button className="nav-link active" type="button">Trade</button>
           <button className="nav-link strategy-nav-link" type="button" onClick={() => setStrategyLabOpen(true)}>Strategy Lab</button>
-          <button className="nav-link ai-nav-link" type="button" onClick={() => setAiCopilotOpen(true)}>AI Copilot</button>
+          <button className="nav-link ai-nav-link" type="button" onClick={() => setAiCopilotOpen(true)}
+                
+              >AI Copilot</button>
           <button className="nav-link scanner-nav-link" type="button" onClick={() => { setScannerOpen(true); runMarketScanner(); }}>Scanner</button>
           <button className="nav-link" type="button" disabled title="Markets page is not implemented yet">Markets</button>
           <button className="nav-link" type="button" disabled title="Portfolio page is not implemented yet">Portfolio</button>
@@ -1396,6 +1400,16 @@ function App() {
         onClose={() => setStrategyLabOpen(false)}
         symbol={symbol}
         marketType={marketType === "usdm" ? "usdm" : "spot"}
+        apiBase={API_BASE}
+      />
+
+      <PaperTradingPanel
+        open={paperTradingOpen}
+        onClose={() => setPaperTradingOpen(false)}
+        symbol={symbol}
+        marketType={marketType === "usdm" ? "usdm" : "spot"}
+        price={price}
+        leverage={leverage}
         apiBase={API_BASE}
       />
 

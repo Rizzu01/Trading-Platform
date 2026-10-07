@@ -4,6 +4,9 @@ import "./styles.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 const WS_BASE = API_BASE.replace(/^http/, "ws");
+const BINANCE_DATA_BASE = "https://data-api.binance.vision";
+const BINANCE_REST_BASES = [BINANCE_DATA_BASE, "https://api.binance.com", API_BASE];
+const BINANCE_STREAM_BASE = "wss://data-stream.binance.vision/ws";
 
 const markets = [
   ["BTC/USDT", "67,842.10", "+2.41%"],
@@ -17,6 +20,7 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketError, setMarketError] = useState("");
+  const [chartConnected, setChartConnected] = useState(false);
   const [symbol, setSymbol] = useState("BTC/USDT");
   const [candles, setCandles] = useState([]);
   const [timeframe, setTimeframe] = useState("1h");
@@ -50,38 +54,183 @@ function App() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setMarketLoading(true);
-    setMarketError("");
-    fetch(`${API_BASE}/api/v1/market/ohlcv/${symbol.replace("/", "")}?timeframe=${timeframe}&limit=60`, { signal: controller.signal })
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error("OHLCV request failed")))
-      .then((data) => setCandles(data.candles || []))
+
+    const loadCandles = async () => {
+      setMarketLoading(true);
+      setMarketError("");
+
+      const normalizedSymbol = symbol.replace("/", "").toUpperCase();
+      const query = new URLSearchParams({ symbol: normalizedSymbol, interval: timeframe, limit: "120" });
+      let lastError = null;
+
+      for (const base of BINANCE_REST_BASES) {
+        try {
+          const isBackend = base === API_BASE;
+          const url = isBackend
+            ? `\${API_BASE}/api/v1/market/ohlcv/${normalizedSymbol}?timeframe=${timeframe}&limit=120`
+            : `\${base}/api/v3/klines?${query.toString()}`;
+          const response = await fetch(url, { signal: controller.signal });
+
+          if (!response.ok) {
+            lastError = new Error(`Market feed returned \${response.status}`);
+            continue;
+          }
+
+          const payload = await response.json();
+          const rawCandles = Array.isArray(payload) ? payload : payload.candles;
+          if (!Array.isArray(rawCandles) || rawCandles.length < 2) {
+            lastError = new Error("Market feed returned no candle data.");
+            continue;
+          }
+
+          const normalized = rawCandles.map((candle) => ({
+            timestamp: Number(candle.timestamp ?? candle[0]),
+            open: Number(candle.open ?? candle[1]),
+            high: Number(candle.high ?? candle[2]),
+            low: Number(candle.low ?? candle[3]),
+            close: Number(candle.close ?? candle[4]),
+            volume: Number(candle.volume ?? candle[5]),
+          })).filter((candle) => Number.isFinite(candle.timestamp) && Number.isFinite(candle.close));
+
+          if (normalized.length < 2) {
+            lastError = new Error("Market feed returned invalid candle data.");
+            continue;
+          }
+
+          setCandles(normalized.slice(-120));
+          return;
+        } catch (error) {
+          if (error.name === "AbortError") return;
+          lastError = error;
+        }
+      }
+
+      throw lastError || new Error("Unable to load live market data.");
+    };
+
+    loadCandles()
       .catch((error) => {
-      if (error.name !== "AbortError") { setCandles([]); setMarketError(error.message); }
-    })
-    .finally(() => setMarketLoading(false));
+        if (error.name !== "AbortError") {
+          setCandles([]);
+          setMarketError(error.message);
+        }
+      })
+      .finally(() => setMarketLoading(false));
+
     return () => controller.abort();
   }, [symbol, timeframe]);
 
   useEffect(() => {
-    let socket;
-    try {
-      socket = new WebSocket(`${WS_BASE}/ws/market/binance/${symbol.replace("/", "")}`);
-      socket.onopen = () => setConnected(true);
-      socket.onclose = () => setConnected(false);
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === "ticker") setTicker(data);
-        } catch {
-          setConnected(false);
-        }
+    const normalizedSymbol = symbol.replace("/", "").toLowerCase();
+    let tickerSocket;
+    let klineSocket;
+    let retryTicker;
+    let retryKline;
+    let disposed = false;
+
+    const upsertKline = (event) => {
+      if (!event?.k) return;
+      const k = event.k;
+      const nextCandle = {
+        timestamp: Number(k.t),
+        open: Number(k.o),
+        high: Number(k.h),
+        low: Number(k.l),
+        close: Number(k.c),
+        volume: Number(k.v),
       };
-      socket.onerror = () => setConnected(false);
-    } catch {
+
+      if (!Number.isFinite(nextCandle.timestamp) || !Number.isFinite(nextCandle.close)) return;
+
+      setCandles((current) => {
+        const next = current.length ? [...current] : [];
+        const lastIndex = next.length - 1;
+        if (lastIndex >= 0 && next[lastIndex].timestamp === nextCandle.timestamp) {
+          next[lastIndex] = nextCandle;
+        } else {
+          const existingIndex = next.findIndex((item) => item.timestamp === nextCandle.timestamp);
+          if (existingIndex >= 0) next[existingIndex] = nextCandle;
+          else next.push(nextCandle);
+        }
+        return next.slice(-120);
+      });
+
+      setTicker((current) => ({
+        ...(current || {}),
+        type: "ticker",
+        symbol: event.s || symbol,
+        last: nextCandle.close,
+      }));
+    };
+
+    const connectTicker = () => {
+      if (disposed) return;
+      try {
+        tickerSocket = new WebSocket(`\${BINANCE_STREAM_BASE}/${normalizedSymbol}@ticker`);
+        tickerSocket.onopen = () => setConnected(true);
+        tickerSocket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            setTicker({
+              type: "ticker",
+              symbol: data.s || symbol,
+              last: Number(data.c),
+              bid: Number(data.b),
+              ask: Number(data.a),
+              high: Number(data.h),
+              low: Number(data.l),
+              volume: Number(data.v),
+            });
+          } catch {}
+        };
+        tickerSocket.onerror = () => setConnected(false);
+        tickerSocket.onclose = () => {
+          setConnected(false);
+          if (!disposed) retryTicker = setTimeout(connectTicker, 1500);
+        };
+      } catch {
+        setConnected(false);
+        if (!disposed) retryTicker = setTimeout(connectTicker, 1500);
+      }
+    };
+
+    const connectKline = () => {
+      if (disposed) return;
+      try {
+        klineSocket = new WebSocket(`\${BINANCE_STREAM_BASE}/${normalizedSymbol}@kline_${timeframe}`);
+        klineSocket.onopen = () => {
+          setChartConnected(true);
+          setChartError("");
+        };
+        klineSocket.onmessage = (event) => {
+          try {
+            upsertKline(JSON.parse(event.data));
+          } catch {}
+        };
+        klineSocket.onerror = () => setChartConnected(false);
+        klineSocket.onclose = () => {
+          setChartConnected(false);
+          if (!disposed) retryKline = setTimeout(connectKline, 1500);
+        };
+      } catch {
+        setChartConnected(false);
+        if (!disposed) retryKline = setTimeout(connectKline, 1500);
+      }
+    };
+
+    connectTicker();
+    connectKline();
+
+    return () => {
+      disposed = true;
+      clearTimeout(retryTicker);
+      clearTimeout(retryKline);
+      tickerSocket?.close();
+      klineSocket?.close();
       setConnected(false);
-    }
-    return () => socket?.close();
-  }, [symbol]);
+      setChartConnected(false);
+    };
+  }, [symbol, timeframe]);
 
   const submitAuth = async () => {
     setAuthMessage("Connecting...");
@@ -189,17 +338,49 @@ function App() {
   const low = ticker?.low ?? 65903.20;
   const volume = ticker?.volume ?? 2.84e9;
 
-  const chartPoints = useMemo(() => {
-    if (candles.length < 2) return "";
-    const closes = candles.map((candle) => Number(candle.close));
-    const min = Math.min(...closes);
-    const max = Math.max(...closes);
-    const range = max - min || 1;
-    return closes.map((close, index) => {
-      const x = (index / (closes.length - 1)) * 900;
-      const y = 330 - ((close - min) / range) * 300;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(" ");
+  const chartGeometry = useMemo(() => {
+    if (candles.length < 2) return null;
+
+    const visible = candles.slice(-80);
+    const highs = visible.map((candle) => candle.high);
+    const lows = visible.map((candle) => candle.low);
+    const volumes = visible.map((candle) => candle.volume || 0);
+    const maxPrice = Math.max(...highs);
+    const minPrice = Math.min(...lows);
+    const priceRange = Math.max(maxPrice - minPrice, maxPrice * 0.0001, 1);
+    const maxVolume = Math.max(...volumes, 1);
+    const top = 20;
+    const priceBottom = 292;
+    const volumeTop = 308;
+    const volumeBottom = 350;
+    const slot = 900 / visible.length;
+    const y = (value) => top + ((maxPrice - value) / priceRange) * (priceBottom - top);
+
+    const points = visible.map((candle, index) => {
+      const x = index * slot + slot / 2;
+      const openY = y(candle.open);
+      const closeY = y(candle.close);
+      const highY = y(candle.high);
+      const lowY = y(candle.low);
+      const volumeHeight = ((candle.volume || 0) / maxVolume) * (volumeBottom - volumeTop);
+      return {
+        ...candle,
+        x,
+        highY,
+        lowY,
+        bodyY: Math.min(openY, closeY),
+        bodyHeight: Math.max(Math.abs(closeY - openY), 1.5),
+        volumeY: volumeBottom - volumeHeight,
+        volumeHeight,
+        bullish: candle.close >= candle.open,
+      };
+    });
+
+    const tickValues = Array.from({ length: 5 }, (_, index) =>
+      maxPrice - (priceRange * index) / 4
+    );
+
+    return { points, tickValues };
   }, [candles]);
 
   const effectivePrice = Number(priceInput || price || 0);
@@ -275,12 +456,36 @@ function App() {
           </div></div>
           <div className="chart-area">
             <div className="grid" />
+            <div className="chart-status">
+              <span className={chartConnected ? "live-dot live" : "live-dot"} />
+              {chartConnected ? "Live" : marketLoading ? "Loading" : "Reconnecting"}
+            </div>
             {marketLoading && <div className="chart-state">Loading {timeframe.toUpperCase()} candles…</div>}
             {!marketLoading && marketError && <div className="chart-state error">{marketError}</div>}
-            <svg viewBox="0 0 900 360" preserveAspectRatio="none">
-              <polyline points={chartPoints || "0,270 60,245 120,260 180,205 240,220 300,170 360,190 420,125 480,155 540,105 600,140 660,92 720,120 780,70 840,94 900,45"} />
-            </svg>
-            <span className="price-line">${formattedPrice}</span>
+            {!marketLoading && !marketError && chartGeometry && (
+              <svg viewBox="0 0 900 360" preserveAspectRatio="none" aria-label={symbol + " live candlestick chart"}>
+                {chartGeometry.tickValues.map((value, index) => {
+                  const lineY = 20 + (index / 4) * 272;
+                  return (
+                    <g key={"tick-" + index}>
+                      <line className="chart-gridline" x1="0" x2="900" y1={lineY} y2={lineY} />
+                      <text className="chart-price-label" x="894" y={lineY - 3} textAnchor="end">
+                        {Number(value).toLocaleString(undefined, { maximumFractionDigits: value < 1 ? 6 : 2 })}
+                      </text>
+                    </g>
+                  );
+                })}
+                <line className="chart-volume-line" x1="0" x2="900" y1="300" y2="300" />
+                {chartGeometry.points.map((candle) => (
+                  <g key={candle.timestamp}>
+                    <line className={candle.bullish ? "candle-wick bullish" : "candle-wick bearish"} x1={candle.x} x2={candle.x} y1={candle.highY} y2={candle.lowY} />
+                    <rect className={candle.bullish ? "candle-body bullish" : "candle-body bearish"} x={candle.x - 5} y={candle.bodyY} width={10} height={candle.bodyHeight} rx="1" />
+                    <rect className={candle.bullish ? "candle-volume bullish" : "candle-volume bearish"} x={candle.x - 5} y={candle.volumeY} width={10} height={Math.max(candle.volumeHeight, 1)} rx="1" />
+                  </g>
+                ))}
+              </svg>
+            )}
+            <span className="price-line">$ {formattedPrice}</span>
           </div>
         </section>
 

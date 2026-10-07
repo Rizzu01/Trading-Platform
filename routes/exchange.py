@@ -4,7 +4,8 @@ from uuid import UUID
 from database.session import get_db
 from dependencies.auth import get_current_user
 from models.user import User
-from schemas.market import OHLCVResponse, TickerResponse\nfrom schemas.exchange import (
+from schemas.market import OHLCVResponse, TickerResponse
+from schemas.exchange import (
     ExchangeCreate,
     ExchangeUpdate,
     ExchangeResponse,

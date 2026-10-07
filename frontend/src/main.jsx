@@ -875,7 +875,7 @@ function App() {
               const change = Number.isFinite(Number(data?.changePercent)) ? Number(data.changePercent) : null;
               return (
                 <button
-                  className={\`market-row market-button \${item.symbol === symbol ? "selected" : ""}\`}
+                  className={`market-row market-button ${item.symbol === symbol ? "selected" : ""}`}
                   key={item.symbol}
                   type="button"
                   onClick={() => { setSymbol(item.symbol); setPriceInput(""); }}
@@ -890,7 +890,7 @@ function App() {
                   <span className="market-snapshot">
                     <b>{data?.last != null ? formatMarketNumber(data.last, 2) : "—"}</b>
                     <em className={change != null && change >= 0 ? "up" : "down"}>
-                      {change == null ? "—" : \`\${change >= 0 ? "+" : ""}\${change.toFixed(2)}%\`}
+                      {change == null ? "—" : `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`}
                     </em>
                   </span>
                 </button>
@@ -1026,7 +1026,7 @@ function App() {
           <div className="balance-display">
             <span>Available {quoteAsset} balance</span>
             <b>{quoteBalance ? formatMarketNumber(quoteBalance.free, 2) : "—"}</b>
-            <small>{selectedExchange && selectedMarketMatchesMode ? \`\${selectedExchange.exchange_name} · \${selectedExchange.market_type}\` : "Authentication required"}</small>
+            <small>{selectedExchange && selectedMarketMatchesMode ? `${selectedExchange.exchange_name} · ${selectedExchange.market_type}` : "Authentication required"}</small>
           </div>
 
           {orderType === "limit" && (
@@ -1064,9 +1064,9 @@ function App() {
           </div>
 
           <div className="estimate">
-            <div><span>Estimated total</span><b>{estimatedCost > 0 ? \`\${formatMarketNumber(estimatedCost, 2)} \${quoteAsset}\` : "—"}</b></div>
+            <div><span>Estimated total</span><b>{estimatedCost > 0 ? `${formatMarketNumber(estimatedCost, 2)} ${quoteAsset}` : "—"}</b></div>
             <div><span>Fee</span><b>Unavailable</b></div>
-            <div><span>Reference price</span><b>{price == null ? "—" : \`\${formatMarketNumber(price, 2)} \${quoteAsset}\`}</b></div>
+            <div><span>Reference price</span><b>{price == null ? "—" : `${formatMarketNumber(price, 2)} ${quoteAsset}`}</b></div>
             <small>Reference price only · not an executable quote</small>
           </div>
 
@@ -1084,10 +1084,10 @@ function App() {
                 : !selectedExchangeId
                   ? "Connect account"
                   : !selectedMarketMatchesMode
-                    ? \`Connect \${marketType === "spot" ? "Spot" : "Futures"} account\`
+                    ? `Connect ${marketType === "spot" ? "Spot" : "Futures"} account`
                     : !orderPriceAvailable
                       ? (orderType === "market" ? "Live price unavailable" : "Enter limit price")
-                      : \`Preview \${side === "buy" ? "Buy" : "Sell"} \${baseAsset}\`}
+                      : `Preview ${side === "buy" ? "Buy" : "Sell"} ${baseAsset}`}
           </button>
 
           <small className="order-footnote">Connect an account and obtain a validated quote to preview an order.</small>

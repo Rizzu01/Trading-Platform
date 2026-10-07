@@ -25,7 +25,17 @@ async def market_stream(websocket: WebSocket, exchange: str, symbol: str):
 
         while True:
             ticker = await asyncio.to_thread(client.get_ticker, normalized)
-            payload = {\n                "type": "ticker",\n                "symbol": ticker.get("symbol", normalized),\n                "last": ticker.get("price", ticker.get("last")),\n                "bid": ticker.get("bid"),\n                "ask": ticker.get("ask"),\n                "high": ticker.get("high"),\n                "low": ticker.get("low"),\n                "volume": ticker.get("volume"),\n            }\n            await websocket.send_text(json.dumps(payload))
+            payload = {
+                "type": "ticker",
+                "symbol": ticker.get("symbol", normalized),
+                "last": ticker.get("price", ticker.get("last")),
+                "bid": ticker.get("bid"),
+                "ask": ticker.get("ask"),
+                "high": ticker.get("high"),
+                "low": ticker.get("low"),
+                "volume": ticker.get("volume"),
+            }
+            await websocket.send_text(json.dumps(payload))
             await asyncio.sleep(1)
     except WebSocketDisconnect:
         return

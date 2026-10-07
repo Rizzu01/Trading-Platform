@@ -85,7 +85,8 @@ class ExchangeService:
         client = ExchangeService._client(db, user_id, exchange_id)
         if "/" not in symbol and symbol.upper().endswith("USDT"):
             symbol = symbol[:-4] + "/USDT"
-        ticker = client.get_ticker(symbol.upper())\n        return {"symbol": ticker.get("symbol", symbol.upper()), "last": ticker.get("last", ticker.get("price")), "bid": ticker.get("bid"), "ask": ticker.get("ask"), "high": ticker.get("high"), "low": ticker.get("low"), "volume": ticker.get("volume"), "timestamp": ticker.get("timestamp")}
+        ticker = client.get_ticker(symbol.upper())
+        return {"symbol": ticker.get("symbol", symbol.upper()), "last": ticker.get("last", ticker.get("price")), "bid": ticker.get("bid"), "ask": ticker.get("ask"), "high": ticker.get("high"), "low": ticker.get("low"), "volume": ticker.get("volume"), "timestamp": ticker.get("timestamp")}
 
     @staticmethod
     def get_ohlcv(db: Session, user_id: UUID, exchange_id: UUID, symbol: str, timeframe: str = "1h", limit: int = 100):

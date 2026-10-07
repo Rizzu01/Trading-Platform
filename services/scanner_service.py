@@ -49,7 +49,7 @@ def scan(symbols: list[str], market_type: str, timeframe: str) -> list[dict]:
             context = MarketContextService.build(symbol, market_type, timeframe, 220)
             score, meta = _score(context)
             ind = context["indicators"]
-            signal = strategy_signal("momentum", context["candles"])[0] if False else strategy_signal("momentum", context["candles"])
+            signal = strategy_signal("momentum", context["candles"])
             results.append({
                 "symbol": context["symbol"],
                 "marketType": market_type,

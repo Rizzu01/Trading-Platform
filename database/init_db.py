@@ -5,6 +5,7 @@ from database.session import engine
 from models.user import User
 from models.exchange import Exchange
 from models.order import Order
+from models.position import Position
 
 
 def create_database():

@@ -83,3 +83,8 @@ small { color: #747b85; font-size: 11px; }
 .data-row > span { display:flex; flex-direction:column; gap:4px; }
 .data-row > span:last-child { align-items:flex-end; }
 .data-row small { color:#737b84; }
+
+.order-confirm { display:flex; flex-direction:column; gap:9px; margin:4px 0 12px; }
+.order-confirm > div { display:flex; justify-content:space-between; gap:20px; padding:8px 0; border-bottom:1px solid #20242a; font-size:12px; }
+.order-confirm span { color:#747b85; }
+.order-confirm b { color:#eef0f2; text-align:right; }

@@ -669,7 +669,7 @@ function App() {
   const formattedLow = low == null ? "—" : formatMarketNumber(low, 2);
   const formattedVolume = volume == null ? "—" : `$${(volume / 1e9).toFixed(2)}B`;
 
-  return (  return (
+  return (
     <main className="terminal">
             <header className="topbar">
         <div className="brand">TRADE<span>LAB</span></div>

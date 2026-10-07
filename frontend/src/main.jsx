@@ -58,7 +58,24 @@ function App() {
     return () => socket?.close();
   }, [symbol]);
 
-  const submitAuth = async () => {\n    setAuthMessage("Connecting...");\n    const endpoint = authMode === "register" ? "/api/v1/auth/register" : "/api/v1/auth/login";\n    const payload = authMode === "register" ? { full_name: authName, email: authEmail, password: authPassword } : { email: authEmail, password: authPassword };\n    try {\n      const response = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });\n      const data = await response.json();\n      if (!response.ok) throw new Error(data.detail || "Authentication failed");\n      if (authMode === "login") {\n        localStorage.setItem("access_token", data.access_token);\n        localStorage.setItem("refresh_token", data.refresh_token);\n      }\n      setAuthMessage(authMode === "register" ? "Account created. You can now sign in." : "Signed in successfully.");\n      if (authMode === "login") setAuthMode(null);\n    } catch (error) { setAuthMessage(error.message); }\n  };\n\n  const price = ticker?.last ?? 67842.10;
+  const submitAuth = async () => {
+    setAuthMessage("Connecting...");
+    const endpoint = authMode === "register" ? "/api/v1/auth/register" : "/api/v1/auth/login";
+    const payload = authMode === "register" ? { full_name: authName, email: authEmail, password: authPassword } : { email: authEmail, password: authPassword };
+    try {
+      const response = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Authentication failed");
+      if (authMode === "login") {
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("refresh_token", data.refresh_token);
+      }
+      setAuthMessage(authMode === "register" ? "Account created. You can now sign in." : "Signed in successfully.");
+      if (authMode === "login") setAuthMode(null);
+    } catch (error) { setAuthMessage(error.message); }
+  };
+
+  const price = ticker?.last ?? 67842.10;
   const high = ticker?.high ?? 68421.90;
   const low = ticker?.low ?? 65903.20;
   const volume = ticker?.volume ?? 2.84e9;

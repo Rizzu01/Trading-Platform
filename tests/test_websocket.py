@@ -7,7 +7,7 @@ def test_market_websocket_route_is_registered():
     assert "/market/{exchange}/{symbol}" in routes
 
     app_routes = [route.path for route in app.routes if hasattr(route, "path")]
-    assert any(path == "/ws/market/{exchange}/{symbol}" for path in app_routes) or routes
+    assert "/ws/market/{exchange}/{symbol}" in app_routes
 
 
 def test_market_websocket_path_shape():

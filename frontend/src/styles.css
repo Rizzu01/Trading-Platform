@@ -35,7 +35,21 @@ small { color: #747b85; font-size: 11px; }
 .chart-area { position: relative; height: 420px; margin-top: 8px; overflow: hidden; background: #0a0c0f; border: 1px solid #181b20; }
 .grid { position: absolute; inset: 0; background-image: linear-gradient(#181b20 1px, transparent 1px), linear-gradient(90deg, #181b20 1px, transparent 1px); background-size: 80px 70px; opacity: .65; }
 .chart svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.chart polyline { fill: none; stroke: #b9ee45; stroke-width: 3; vector-effect: non-scaling-stroke; }
+.chart-status { position:absolute; left:10px; top:8px; z-index:2; display:flex; align-items:center; gap:6px; padding:4px 7px; border:1px solid #20242a; border-radius:999px; background:rgba(10,12,15,.86); color:#7f8790; font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+.live-dot { width:6px; height:6px; border-radius:50%; background:#676e77; }
+.live-dot.live { background:#b9ee45; box-shadow:0 0 9px rgba(185,238,69,.55); }
+.chart-gridline { stroke:#1a1e23; stroke-width:1; vector-effect:non-scaling-stroke; }
+.chart-price-label { fill:#626a74; font-size:11px; font-family:Inter,Arial,sans-serif; }
+.chart-volume-line { stroke:#1a1e23; stroke-width:1; vector-effect:non-scaling-stroke; }
+.candle-wick { stroke-width:1; vector-effect:non-scaling-stroke; }
+.candle-wick.bullish { stroke:#b9ee45; }
+.candle-wick.bearish { stroke:#ef7777; }
+.candle-body { stroke-width:1; vector-effect:non-scaling-stroke; }
+.candle-body.bullish { fill:#b9ee45; stroke:#b9ee45; }
+.candle-body.bearish { fill:#ef7777; stroke:#ef7777; }
+.candle-volume { opacity:.2; }
+.candle-volume.bullish { fill:#b9ee45; }
+.candle-volume.bearish { fill:#ef7777; }
 .price-line { position: absolute; right: 8px; top: 42px; padding: 4px 7px; background: #b9ee45; color: #0a0c0f; font-size: 11px; font-weight: 800; border-radius: 3px; }
 .segmented { display: grid; grid-template-columns: 1fr 1fr; margin: 10px 0 18px; background: #15181c; border-radius: 6px; padding: 3px; }
 .segmented button { border: 0; background: transparent; color: #818790; padding: 9px; border-radius: 4px; }

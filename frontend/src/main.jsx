@@ -1386,6 +1386,8 @@ function App() {
         </div>
       )}
 
+      {scannerOverlay}
+
       <StrategyLab
         open={strategyLabOpen}
         onClose={() => setStrategyLabOpen(false)}

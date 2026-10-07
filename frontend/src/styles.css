@@ -56,3 +56,12 @@ small { color: #747b85; font-size: 11px; }
 .order-message { margin: 10px 0; padding: 9px 10px; border: 1px solid #34382f; background: #151914; color: #aeb69f; border-radius: 6px; font-size: 11px; line-height: 1.4; }
 .status i { background: #6d737b; }
 .status i.online { background: #a9e83d; }
+
+.auth-overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(0,0,0,.72); backdrop-filter: blur(6px); }
+.auth-card { width: 390px; padding: 22px; border: 1px solid #2b2f34; border-radius: 12px; background: #101216; box-shadow: 0 24px 80px rgba(0,0,0,.45); }
+.auth-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 18px; }
+.auth-head div { display:flex; flex-direction:column; gap:5px; }
+.auth-head b { font-size:18px; color:#f2f4f6; }
+.auth-head button { border:0; background:transparent; color:#7e858e; font-size:22px; cursor:pointer; }
+.auth-card input { width:100%; border:1px solid #292d33; background:#15181c; color:#eef0f2; padding:11px; border-radius:7px; margin:6px 0; outline:none; }
+.auth-switch { width:100%; border:0; background:transparent; color:#9fbf5a; padding:12px 4px 0; cursor:pointer; font-size:12px; }

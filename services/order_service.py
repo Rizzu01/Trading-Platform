@@ -9,10 +9,24 @@ from services.exchange_service import ExchangeService
 
 
 def _normalize_symbol(symbol: str) -> str:
-    symbol = symbol.strip().upper()
-    if "/" not in symbol and symbol.endswith("USDT"):
-        return symbol[:-4] + "/USDT"
-    return symbol
+    value = symbol.strip().upper()
+    if not value:
+        raise ValueError("Symbol is required.")
+
+    if "/" not in value and value.endswith("USDT"):
+        base = value[:-4]
+        if not base:
+            raise ValueError("Invalid symbol.")
+        return f"{base}/USDT"
+
+    if "/" not in value:
+        raise ValueError("Symbol must use BASE/QUOTE format or end with USDT.")
+
+    base, quote = value.split("/", 1)
+    if not base or not quote:
+        raise ValueError("Invalid symbol.")
+
+    return f"{base}/{quote}"
 
 
 def _as_float(value, default=0.0):

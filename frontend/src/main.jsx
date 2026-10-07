@@ -39,6 +39,7 @@ function App() {
   const [selectedExchangeId, setSelectedExchangeId] = useState(null);
   const [balance, setBalance] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [balanceView, setBalanceView] = useState("available");
   const [activeTab, setActiveTab] = useState("positions");
   const [positions, setPositions] = useState([]);
   const [openOrders, setOpenOrders] = useState([]);
@@ -285,7 +286,14 @@ function App() {
             </div>
           )}
           <div className="segmented"><button className={side === "buy" ? "active buy" : ""} onClick={() => setSide("buy")}>Buy</button><button className={side === "sell" ? "active sell" : ""} onClick={() => setSide("sell")}>Sell</button></div>
-          <div className="balance">Available <b>{balance?.free?.USDT != null ? `${Number(balance.free.USDT).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Connect exchange"}</b></div>
+          <div className="balance-card">
+            <div className="balance-top"><span>{marketType === "spot" ? "Spot account" : "Futures account"}</span><b>{balance?.free?.USDT != null ? `${Number(balance.free.USDT).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Connect exchange"}</b></div>
+            <div className="balance-tabs">
+              <button className={balanceView === "available" ? "active" : ""} onClick={() => setBalanceView("available")}>Available</button>
+              <button className={balanceView === "total" ? "active" : ""} onClick={() => setBalanceView("total")}>Total</button>
+            </div>
+            <small>{balanceView === "available" ? "Free USDT balance" : "Account balance snapshot"}</small>
+          </div>
           <label>Order type<select value={orderType} onChange={(e) => { setOrderType(e.target.value); setOrderMessage(""); }}><option value="limit">Limit</option><option value="market">Market</option></select></label>
           <label>Price<input value={orderType === "market" ? "Market price" : priceInput || Number(price).toFixed(2)} onChange={(e) => setPriceInput(e.target.value)} readOnly={orderType === "market"} /></label>
           <label>Amount<input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder={`0.00 ${symbol.split("/")[0]}`} /></label>
@@ -460,6 +468,7 @@ function App() {
             {exchangeMessage && <div className="order-message">{exchangeMessage}</div>}
             <button className="primary" onClick={connectExchange}>Connect exchange</button>
             <div className="connected-list">
+              {exchanges.length > 0 && <div className="connected-heading">Connected accounts</div>}
               {exchanges.map((exchange) => (
                 <button
                   className={selectedExchangeId === exchange.id ? "exchange-item selected" : "exchange-item"}

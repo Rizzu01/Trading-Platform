@@ -80,7 +80,7 @@ def build_trade_setup(symbol: str, market_type: str, timeframe: str) -> dict:
         "stopLoss": stop_loss,
         "takeProfit": take_profit,
         "riskReward": 2.0,
-        "confidence": min(95, confidence),
+        "confidence": confidence,\n        "liveConfidence": live_confidence,\n        "historicalEvidenceScore": evidence_score,
         "strategyAgreement": agreement,
         "strategiesEvaluated": len(candidates),
         "requiredAgreement": required,

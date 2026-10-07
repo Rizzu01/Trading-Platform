@@ -6,6 +6,7 @@ from routes.exchange import router as exchange_router
 from routes.order import router as order_router
 from routes.market import router as market_router
 from routes.strategies import router as strategies_router
+from routes.ai import router as ai_router
 
 api_router = APIRouter()
 
@@ -15,3 +16,4 @@ api_router.include_router(exchange_router)
 api_router.include_router(order_router)
 api_router.include_router(market_router)
 api_router.include_router(strategies_router)
+api_router.include_router(ai_router)

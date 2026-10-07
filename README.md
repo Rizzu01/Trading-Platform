@@ -111,3 +111,7 @@ npm run build
 ## Important
 
 Live order execution is intentionally not represented as a completed production feature in this README. Exchange execution requires additional production hardening, permissions, risk controls, and end-to-end verification before real funds should be used.
+
+
+## Deployment
+Backend is configured for Railway with PostgreSQL, Redis, Alembic migrations, and a health check at `/health`.

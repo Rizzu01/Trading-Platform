@@ -7,7 +7,8 @@ from routes.order import router as order_router
 from routes.market import router as market_router
 from routes.strategies import router as strategies_router
 from routes.ai import router as ai_router
-from routes.scanner import router as scanner_router\nfrom routes.paper import router as paper_router
+from routes.scanner import router as scanner_router
+from routes.paper import router as paper_router
 
 api_router = APIRouter()
 
@@ -18,4 +19,5 @@ api_router.include_router(order_router)
 api_router.include_router(market_router)
 api_router.include_router(strategies_router)
 api_router.include_router(ai_router)
-api_router.include_router(scanner_router)\napi_router.include_router(paper_router)
+api_router.include_router(scanner_router)
+api_router.include_router(paper_router)

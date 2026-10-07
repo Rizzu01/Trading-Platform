@@ -6,7 +6,7 @@ import {
   CrosshairMode,
 } from "lightweight-charts";
 
-const CHART_HEIGHT = 420;
+const CHART_HEIGHT = 270;
 
 export default function MarketChart({
   candles = [],

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
+import MarketChart from "./components/MarketChart";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 const WS_BASE = API_BASE.replace(/^http/, "ws");
@@ -451,42 +452,27 @@ function App() {
         </aside>
 
         <section className="chart panel">
-          <div className="panel-title"><b>{symbol} · {timeframe.toUpperCase()}</b><div className="tabs chart-timeframes">
-            {["1m", "5m", "15m", "1h", "4h", "1d"].map((value) => <button key={value} className={timeframe === value ? "tab active" : "tab"} onClick={() => setTimeframe(value)}>{value.toUpperCase()}</button>)}
-          </div></div>
-          <div className="chart-area">
-            <div className="grid" />
-            <div className="chart-status">
-              <span className={chartConnected ? "live-dot live" : "live-dot"} />
-              {chartConnected ? "Live" : marketLoading ? "Loading" : "Reconnecting"}
+          <div className="panel-title">
+            <b>{symbol} · {timeframe.toUpperCase()}</b>
+            <div className="tabs chart-timeframes">
+              {["1m", "5m", "15m", "1h", "4h", "1d"].map((value) => (
+                <button
+                  key={value}
+                  className={timeframe === value ? "tab active" : "tab"}
+                  onClick={() => setTimeframe(value)}
+                >
+                  {value.toUpperCase()}
+                </button>
+              ))}
             </div>
-            {marketLoading && <div className="chart-state">Loading {timeframe.toUpperCase()} candles…</div>}
-            {!marketLoading && marketError && <div className="chart-state error">{marketError}</div>}
-            {!marketLoading && !marketError && chartGeometry && (
-              <svg viewBox="0 0 900 360" preserveAspectRatio="none" aria-label={symbol + " live candlestick chart"}>
-                {chartGeometry.tickValues.map((value, index) => {
-                  const lineY = 20 + (index / 4) * 272;
-                  return (
-                    <g key={"tick-" + index}>
-                      <line className="chart-gridline" x1="0" x2="900" y1={lineY} y2={lineY} />
-                      <text className="chart-price-label" x="894" y={lineY - 3} textAnchor="end">
-                        {Number(value).toLocaleString(undefined, { maximumFractionDigits: value < 1 ? 6 : 2 })}
-                      </text>
-                    </g>
-                  );
-                })}
-                <line className="chart-volume-line" x1="0" x2="900" y1="300" y2="300" />
-                {chartGeometry.points.map((candle) => (
-                  <g key={candle.timestamp}>
-                    <line className={candle.bullish ? "candle-wick bullish" : "candle-wick bearish"} x1={candle.x} x2={candle.x} y1={candle.highY} y2={candle.lowY} />
-                    <rect className={candle.bullish ? "candle-body bullish" : "candle-body bearish"} x={candle.x - 5} y={candle.bodyY} width={10} height={candle.bodyHeight} rx="1" />
-                    <rect className={candle.bullish ? "candle-volume bullish" : "candle-volume bearish"} x={candle.x - 5} y={candle.volumeY} width={10} height={Math.max(candle.volumeHeight, 1)} rx="1" />
-                  </g>
-                ))}
-              </svg>
-            )}
-            <span className="price-line">$ {formattedPrice}</span>
           </div>
+          <MarketChart
+            candles={candles}
+            symbol={symbol}
+            connected={chartConnected}
+            loading={marketLoading}
+            error={marketError}
+          />
         </section>
 
         <aside className="order panel">

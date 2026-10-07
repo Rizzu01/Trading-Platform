@@ -15,10 +15,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    user_role = sa.Enum("ADMIN", "USER", name="userrole")
-    order_side = sa.Enum("BUY", "SELL", name="orderside")
-    order_type = sa.Enum("MARKET", "LIMIT", name="ordertype")
-    order_status = sa.Enum("OPEN", "CLOSED", "CANCELED", "REJECTED", "EXPIRED", name="orderstatus")
+    user_role = postgresql.ENUM("ADMIN", "USER", name="userrole", create_type=False)
+    order_side = postgresql.ENUM("BUY", "SELL", name="orderside", create_type=False)
+    order_type = postgresql.ENUM("MARKET", "LIMIT", name="ordertype", create_type=False)
+    order_status = postgresql.ENUM("OPEN", "CLOSED", "CANCELED", "REJECTED", "EXPIRED", name="orderstatus", create_type=False)
 
     bind = op.get_bind()
     user_role.create(bind, checkfirst=True)
@@ -88,8 +88,8 @@ def upgrade() -> None:
     op.create_index("ix_orders_exchange_id", "orders", ["exchange_id"], unique=False)
     op.create_index("ix_orders_external_order_id", "orders", ["external_order_id"], unique=False)
     op.create_index("ix_orders_symbol", "orders", ["symbol"], unique=False)
-    position_side = sa.Enum("LONG", "SHORT", name="positionside")
-    position_status = sa.Enum("OPEN", "CLOSED", name="positionstatus")
+    position_side = postgresql.ENUM("LONG", "SHORT", name="positionside", create_type=False)
+    position_status = postgresql.ENUM("OPEN", "CLOSED", name="positionstatus", create_type=False)
     position_side.create(bind, checkfirst=True)
     position_status.create(bind, checkfirst=True)
 

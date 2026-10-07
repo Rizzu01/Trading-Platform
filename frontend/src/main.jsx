@@ -315,12 +315,34 @@ function App() {
           <div className="empty"><strong>Connect an exchange</strong><span>Select a connected exchange to load your trading data.</span></div>
         )}
         {selectedExchangeId && activeTab === "positions" && (
-          positions.length ? <div className="data-list">{positions.map((item, index) => (
-            <div className="data-row" key={item.id || item.symbol || index}>
-              <span><b>{item.symbol || "—"}</b><small>{item.side || "—"} · {item.contracts ?? item.amount ?? "—"}</small></span>
-              <span><b>{item.unrealizedPnl ?? item.unrealized_pnl ?? "—"}</b><small>Entry {item.entryPrice ?? item.entry_price ?? "—"}</small></span>
-            </div>
-          ))}</div> : <div className="empty"><strong>No active positions</strong><span>Open futures positions will appear here.</span></div>
+          positions.length ? <div className="position-list">{positions.map((item, index) => {
+            const positionSide = String(item.side || "—").toUpperCase();
+            const contracts = Number(item.contracts ?? item.amount ?? item.quantity ?? 0);
+            const entry = Number(item.entryPrice ?? item.entry_price ?? 0);
+            const mark = Number(item.markPrice ?? item.mark_price ?? price);
+            const pnl = Number(item.unrealizedPnl ?? item.unrealized_pnl ?? 0);
+            const margin = Number(item.margin ?? 0);
+            const roi = margin > 0 ? (pnl / margin) * 100 : null;
+            const liquidation = item.liquidationPrice ?? item.liquidation_price;
+            const isLong = positionSide === "LONG";
+            return (
+              <article className="position-card" key={item.id || item.symbol || index}>
+                <div className="position-head">
+                  <div><b>{item.symbol || "—"}</b><span className={isLong ? "position-long" : "position-short"}>{positionSide}</span></div>
+                  <strong className={pnl >= 0 ? "up" : "down"}>{pnl.toFixed(2)} USDT</strong>
+                </div>
+                <div className="position-grid">
+                  <div><span>Size</span><b>{contracts || "—"}</b></div>
+                  <div><span>Entry</span><b>{entry ? entry.toLocaleString() : "—"}</b></div>
+                  <div><span>Mark</span><b>{mark ? mark.toLocaleString() : "—"}</b></div>
+                  <div><span>Margin</span><b>{margin ? margin.toLocaleString() : "—"}</b></div>
+                  <div><span>Leverage</span><b>{item.leverage ? `${item.leverage}×` : "—"}</b></div>
+                  <div><span>ROI</span><b className={pnl >= 0 ? "up" : "down"}>{roi === null ? "—" : `${roi.toFixed(2)}%`}</b></div>
+                </div>
+                <div className="position-foot"><span>Liquidation Price</span><b>{liquidation ? Number(liquidation).toLocaleString() : "—"}</b></div>
+              </article>
+            );
+          })}</div> : <div className="empty"><strong>No active positions</strong><span>Open futures positions will appear here.</span></div>
         )}
         {selectedExchangeId && activeTab === "open" && (
           openOrders.length ? <div className="data-list">{openOrders.map((item, index) => (

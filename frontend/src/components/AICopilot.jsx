@@ -171,7 +171,8 @@ export default function AICopilot({ open, onClose, symbol, marketType, timeframe
                 <div><span>Strategy agreement</span><b>{setup.strategyAgreement}/{setup.strategiesEvaluated}</b></div>
                 <div><span>Max loss</span><b>{risk ? n(risk.maxLoss) : "—"}</b></div>
               </div>
-              <small className="ai-rationale">{setup.rationale}</small>\n              {setup.votes?.length > 0 && <div className="ai-vote-list">{setup.votes.map((vote) => <span key={vote.strategyId}>{vote.strategy}: <b>{vote.signal}</b></span>)}</div>}
+              <small className="ai-rationale">{setup.rationale}</small>
+              {setup.votes?.length > 0 && <div className="ai-vote-list">{setup.votes.map((vote) => <span key={vote.strategyId}>{vote.strategy}: <b>{vote.signal}</b></span>)}</div>}
             </>
           ) : (
             <p className="ai-empty">Generate a setup from the current real market context. This is an analytical setup, not an order.</p>

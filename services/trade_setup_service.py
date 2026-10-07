@@ -4,7 +4,7 @@ from collections import Counter
 
 from services.market_context import MarketContextService
 from services.regime_service import PREFERRED
-from strategies.engine import strategy_signal
+from strategies.engine import backtest, strategy_signal
 from strategies.registry import get_strategy
 
 
@@ -23,14 +23,14 @@ def build_trade_setup(symbol: str, market_type: str, timeframe: str) -> dict:
 
     votes = []
     for strategy_id in candidates:
-        signal = strategy_signal(strategy_id, context["candles"])
+        signal = strategy_signal(strategy_id, context["candles"])\n        validation = backtest(strategy_id, context["candles"], 10000, 5, 2, market_type, 1.0, 1.0)
         votes.append({
             "strategyId": strategy_id,
             "strategy": get_strategy(strategy_id)["name"],
             "signal": _direction(signal.value),
             "confidence": signal.confidence,
             "reason": signal.reason,
-            "stopDistance": signal.stop_distance,
+            "stopDistance": signal.stop_distance,\n            "validation": {\n                "returnPct": validation["return_pct"],\n                "maxDrawdownPct": validation["max_drawdown_pct"],\n                "winRatePct": validation["win_rate_pct"],\n                "profitFactor": validation["profit_factor"],\n                "tradeCount": validation["trade_count"],\n                "sharpeRatio": validation["sharpe_ratio"],\n            },
         })
 
     usable = [v for v in votes if v["signal"] in ("LONG", "SHORT")]

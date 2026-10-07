@@ -169,7 +169,7 @@ export default function AICopilot({ open, onClose, symbol, marketType, timeframe
                 <div><span>Take Profit</span><b>{n(setup.takeProfit)}</b></div>
                 <div><span>R:R</span><b>1 : {setup.riskReward}</b></div>
                 <div><span>Strategy agreement</span><b>{setup.strategyAgreement}/{setup.strategiesEvaluated}</b></div>
-                <div><span>Max loss</span><b>{risk ? n(risk.maxLoss) : "—"}</b></div>
+                <div><span>Max loss</span><b>{risk ? n(risk.maximumLoss) : "—"}</b></div>
               </div>
               <small className="ai-rationale">{setup.rationale}</small>
               {setup.votes?.length > 0 && <div className="ai-vote-list">{setup.votes.map((vote) => <span key={vote.strategyId}>{vote.strategy}: <b>{vote.signal}</b></span>)}</div>}
@@ -192,7 +192,7 @@ export default function AICopilot({ open, onClose, symbol, marketType, timeframe
               <div><span>Position size</span><b>{n(risk.positionSize)}</b></div>
               <div><span>Notional</span><b>{n(risk.notional)}</b></div>
               <div><span>Margin</span><b>{n(risk.marginRequired)}</b></div>
-              <div><span>Liquidation risk</span><b>{risk.liquidationRisk ? "HIGH" : "LOW"}</b></div>
+              <div><span>Liquidation risk</span><b>{String(risk.liquidationRisk || "—").toUpperCase()}</b></div>
             </div>
           )}
         </section>

@@ -9,6 +9,46 @@ const BINANCE_DATA_BASE = "https://data-api.binance.vision";
 const BINANCE_REST_BASES = [BINANCE_DATA_BASE, "https://api.binance.com", API_BASE];
 const BINANCE_STREAM_BASE = "wss://data-stream.binance.vision/ws";
 
+async function refreshSession() {
+  const refreshToken = localStorage.getItem("refresh_token");
+  if (!refreshToken) return false;
+
+  try {
+    const response = await fetch(API_BASE + "/api/v1/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!response.ok) throw new Error("Refresh failed");
+    const data = await response.json();
+    localStorage.setItem("access_token", data.access_token);
+    localStorage.setItem("refresh_token", data.refresh_token);
+    return true;
+  } catch {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    return false;
+  }
+}
+
+async function authFetch(url, options = {}) {
+  const makeHeaders = (token) => ({
+    ...(options.headers || {}),
+    ...(token ? { Authorization: "Bearer " + token } : {}),
+  });
+
+  let token = localStorage.getItem("access_token");
+  let response = await fetch(url, { ...options, headers: makeHeaders(token) });
+
+  if (response.status !== 401) return response;
+
+  const refreshed = await refreshSession();
+  if (!refreshed) return response;
+
+  token = localStorage.getItem("access_token");
+  return fetch(url, { ...options, headers: makeHeaders(token) });
+}
+
 const markets = [
   ["BTC/USDT", "67,842.10", "+2.41%"],
   ["ETH/USDT", "3,842.18", "+1.84%"],
@@ -258,9 +298,9 @@ function App() {
   const accessToken = localStorage.getItem("access_token");
 
   const loadBalance = async (exchangeId) => {
-    if (!accessToken || !exchangeId) return;
+    if (!localStorage.getItem("access_token") || !exchangeId) return;
     try {
-      const response = await fetch(`${API_BASE}/api/v1/exchange/${exchangeId}/balance`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      const response = await authFetch(`${API_BASE}/api/v1/exchange/${exchangeId}/balance`);
       if (!response.ok) throw new Error("Unable to load balance.");
       const data = await response.json();
       setBalance(data.balances || {});
@@ -271,13 +311,12 @@ function App() {
   };
 
   const loadTradingData = async (exchangeId) => {
-    if (!accessToken || !exchangeId) return;
-    const headers = { Authorization: `Bearer ${accessToken}` };
+    if (!localStorage.getItem("access_token") || !exchangeId) return;
     try {
       const [positionsResponse, openResponse, historyResponse] = await Promise.all([
-        fetch(`${API_BASE}/api/v1/exchange/${exchangeId}/positions`, { headers }),
-        fetch(`${API_BASE}/api/v1/orders/${exchangeId}/open?symbol=${encodeURIComponent(symbol.replace("/", ""))}`, { headers }),
-        fetch(`${API_BASE}/api/v1/orders/${exchangeId}/history?symbol=${encodeURIComponent(symbol.replace("/", ""))}`, { headers }),
+        authFetch(`${API_BASE}/api/v1/exchange/${exchangeId}/positions`),
+        authFetch(`${API_BASE}/api/v1/orders/${exchangeId}/open?symbol=${encodeURIComponent(symbol.replace("/", ""))}`),
+        authFetch(`${API_BASE}/api/v1/orders/${exchangeId}/history?symbol=${encodeURIComponent(symbol.replace("/", ""))}`),
       ]);
       if (positionsResponse.ok) {
         const data = await positionsResponse.json();
@@ -305,21 +344,25 @@ function App() {
   };
 
   const loadExchanges = async () => {
-    if (!accessToken) { setExchangeMessage("Sign in first to connect an exchange."); return; }
-    const response = await fetch(`${API_BASE}/api/v1/exchange`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!localStorage.getItem("access_token")) { setExchangeMessage("Sign in first to connect an exchange."); return; }
+    const response = await authFetch(`${API_BASE}/api/v1/exchange`);
     if (!response.ok) { setExchangeMessage("Unable to load connected exchanges."); return; }
     setExchanges(await response.json());
   };
 
   const connectExchange = async () => {
-    if (!accessToken) {
+    if (!localStorage.getItem("access_token")) {
       setExchangeMessage("Sign in first.");
       setAuthMode("login");
       return;
     }
     setExchangeMessage("Connecting...");
     try {
-      const response = await fetch(`${API_BASE}/api/v1/exchange`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ exchange_name: exchangeName, market_type: marketType, api_key: apiKey, api_secret: apiSecret }) });
+      const response = await authFetch(`${API_BASE}/api/v1/exchange`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exchange_name: exchangeName, market_type: marketType, api_key: apiKey, api_secret: apiSecret }),
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Exchange connection failed");
       setApiKey(""); setApiSecret("");

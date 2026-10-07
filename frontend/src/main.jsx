@@ -126,7 +126,7 @@ function App() {
   const [timeframe, setTimeframe] = useState("1h");
   const [marketSearch, setMarketSearch] = useState("");
   const [side, setSide] = useState("buy");
-  const [orderType, setOrderType] = useState("limit");
+  const [orderType, setOrderType] = useState("market");
   const [amount, setAmount] = useState("");
   const [priceInput, setPriceInput] = useState("");
   const [orderMessage, setOrderMessage] = useState("");
@@ -149,7 +149,7 @@ function App() {
   const [balance, setBalance] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [balanceView, setBalanceView] = useState("available");
-  const [activeTab, setActiveTab] = useState("positions");
+  const [activeTab, setActiveTab] = useState("balances");
   const [positions, setPositions] = useState([]);
   const [openOrders, setOpenOrders] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
@@ -759,7 +759,9 @@ function App() {
           </select>
           <button className="icon-button" type="button" disabled title="Notifications are not backed by a notification API yet">◌</button>
           <div className="account-wrap">
-            <button className="profile" onClick={() => setAccountMenuOpen((value) => !value)} aria-expanded={accountMenuOpen}>RK</button>
+            <button className="profile" onClick={() => setAccountMenuOpen((value) => !value)} aria-expanded={accountMenuOpen}>
+              Connect account
+            </button>
             {accountMenuOpen && (
               <div className="account-menu">
                 <div className="account-menu-head">
@@ -882,12 +884,10 @@ function App() {
             <small>{selectedExchange && selectedMarketMatchesMode ? `${selectedExchange.exchange_name} · ${selectedExchange.market_type}` : `Connect a ${marketType === "usdm" ? "USDT-M futures" : "spot"} account to load this balance.`}</small>
           </div>
 
-          <label>Order type
-            <select value={orderType} onChange={(e) => { setOrderType(e.target.value); setOrderMessage(""); }}>
-              <option value="limit">Limit</option>
-              <option value="market">Market</option>
-            </select>
-          </label>
+          <div className="order-type-tabs">
+            <button className={orderType === "market" ? "active" : ""} type="button" onClick={() => { setOrderType("market"); setOrderMessage(""); }}>Market</button>
+            <button className={orderType === "limit" ? "active" : ""} type="button" onClick={() => { setOrderType("limit"); setOrderMessage(""); }}>Limit</button>
+          </div>
 
           {orderType === "limit" && (
             <label>Limit price
@@ -968,10 +968,11 @@ function App() {
         <div className="panel-title">
           <b>Positions & Orders</b>
           <div className="tabs">
-            <button className={activeTab === "positions" ? "tab active" : "tab"} onClick={() => setActiveTab("positions")}>Positions</button>
+            <button className={activeTab === "balances" ? "tab active" : "tab"} onClick={() => setActiveTab("balances")}>Balances</button>
             <button className={activeTab === "open" ? "tab active" : "tab"} onClick={() => setActiveTab("open")}>Open Orders</button>
             <button className={activeTab === "history" ? "tab active" : "tab"} onClick={() => setActiveTab("history")}>Order History</button>
-            <button className="tab disabled" type="button" title="Trade history is not exposed by the current backend adapter">Trade History</button>
+            <button className="tab disabled" type="button" disabled title="Trade history is not exposed by the current backend adapter">Trade History</button>
+            {marketType === "usdm" && <button className={activeTab === "positions" ? "tab active" : "tab"} onClick={() => setActiveTab("positions")}>Positions</button>}
           </div>
         </div>
         {!selectedExchangeId && (
@@ -980,6 +981,39 @@ function App() {
         {selectedExchangeId && !selectedMarketMatchesMode && (
           <div className="empty"><strong>Account mode mismatch</strong><span>Selected account is {selectedExchange?.market_type || "unknown"}; switch the terminal to the matching mode.</span></div>
         )}
+        {selectedExchangeId && selectedMarketMatchesMode && activeTab === "balances" && (
+          <div className="account-balance-table">
+            <div className="balance-row balance-heading">
+              <span>Asset</span>
+              <span>Available</span>
+              <span>In orders</span>
+              <span>Total</span>
+              <span>Value (USDT)</span>
+              <span>Actions</span>
+            </div>
+            {Array.isArray(balance) && balance.length ? balance.slice(0, 12).map((item, index) => {
+              const free = Number(item.free || 0);
+              const used = Number(item.used || 0);
+              const total = Number(item.total ?? free + used);
+              const tickerKey = String(item.asset || "").toUpperCase() + "USDT";
+              const conversion = item.asset === "USDT" ? 1 : Number(marketData[tickerKey]?.last || 0);
+              const value = conversion > 0 ? total * conversion : null;
+              return (
+                <div className="balance-row" key={item.asset || index}>
+                  <span><b>{item.asset || "—"}</b></span>
+                  <span>{formatMarketNumber(free, 6)}</span>
+                  <span>{formatMarketNumber(used, 6)}</span>
+                  <span>{formatMarketNumber(total, 6)}</span>
+                  <span>{value == null ? "—" : formatMarketNumber(value, 2)}</span>
+                  <span><button className="row-action" type="button" disabled title="Asset action controls are not implemented yet">—</button></span>
+                </div>
+              );
+            }) : (
+              <div className="empty small"><strong>No balance rows returned</strong><span>The connected exchange returned no balances for this account.</span></div>
+            )}
+          </div>
+        )}
+
         {selectedExchangeId && selectedMarketMatchesMode && dataState.positions && (
           <div className="availability-card large"><strong>Positions unavailable</strong><span>{dataState.positions}</span></div>
         )}

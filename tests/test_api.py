@@ -20,7 +20,7 @@ def test_health_endpoint():
 def test_exchange_requires_authentication():
     client = TestClient(app)
     response = client.get("/api/v1/exchange")
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 def test_exchange_validation_is_enforced():

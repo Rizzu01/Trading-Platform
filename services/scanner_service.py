@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from exchanges.factory import create_exchange
-from services.Market_context import MarketContextService
+from services.market_context import MarketContextService
 from services.trade_setup_service import build_trade_setup
 
 def _score(setup: dict) -> int:

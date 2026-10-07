@@ -160,7 +160,17 @@ function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem("tradelab-theme") || "system");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [strategyLabOpen, setStrategyLabOpen] = useState(false);
+  const [chartToolState, setChartToolState] = useState({
+    crosshair: true,
+    volume: true,
+    candles: true,
+    ema20: false,
+    ema50: false,
+    bollinger: false,
+    autoScale: true,
+  });
   const searchInputRef = useRef(null);
+  const marketChartRef = useRef(null);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: light)");
@@ -944,33 +954,35 @@ function App() {
               ))}
             </div>
             <div className="chart-tools">
-              <button type="button" disabled>⌖</button>
-              <button type="button" disabled>◉</button>
-              <button type="button" disabled>−</button>
-              <button type="button" disabled>□</button>
-              <button type="button" disabled>⌁</button>
-              <button type="button" disabled>📏</button>
-              <button type="button" disabled>◌</button>
-              <button type="button" disabled>🔒</button>
-              <button type="button" disabled>◒ Chart type</button>
-              <button type="button" disabled>⚙</button>
-              <button type="button" disabled>⛶</button>
+              <button type="button" className={chartToolState.crosshair ? "active" : ""} onClick={() => setChartToolState((state) => ({ ...state, crosshair: marketChartRef.current?.toggleCrosshair() ?? state.crosshair }))} title="Toggle crosshair">Crosshair</button>
+              <button type="button" className={chartToolState.ema20 ? "active" : ""} onClick={() => setChartToolState((state) => ({ ...state, ema20: marketChartRef.current?.toggleIndicator("ema20") ?? state.ema20 }))} title="EMA 20">EMA20</button>
+              <button type="button" className={chartToolState.ema50 ? "active" : ""} onClick={() => setChartToolState((state) => ({ ...state, ema50: marketChartRef.current?.toggleIndicator("ema50") ?? state.ema50 }))} title="EMA 50">EMA50</button>
+              <button type="button" className={chartToolState.bollinger ? "active" : ""} onClick={() => setChartToolState((state) => ({ ...state, bollinger: marketChartRef.current?.toggleIndicator("bollinger") ?? state.bollinger }))} title="Bollinger Bands">BB</button>
+              <button type="button" className={chartToolState.volume ? "active" : ""} onClick={() => setChartToolState((state) => ({ ...state, volume: marketChartRef.current?.toggleVolume() ?? state.volume }))} title="Toggle volume">Volume</button>
+              <button type="button" className={chartToolState.candles ? "active" : ""} onClick={() => setChartToolState((state) => ({ ...state, candles: marketChartRef.current?.toggleChartType() ?? state.candles }))} title="Toggle candles / line">Candles</button>
+              <button type="button" onClick={() => marketChartRef.current?.zoom("in")} title="Zoom in">+</button>
+              <button type="button" onClick={() => marketChartRef.current?.zoom("out")} title="Zoom out">−</button>
+              <button type="button" onClick={() => marketChartRef.current?.reset()} title="Fit chart to data">Reset</button>
+              <button type="button" className={chartToolState.autoScale ? "active" : ""} onClick={() => setChartToolState((state) => ({ ...state, autoScale: marketChartRef.current?.toggleAutoScale() ?? state.autoScale }))} title="Toggle price auto scale">Auto</button>
+              <button type="button" onClick={() => marketChartRef.current?.fullscreen()} title="Fullscreen chart">Full</button>
             </div>
           </div>
 
           <div className="chart-area">
             <div className="chart-tools-rail">
-              <button type="button" disabled>⌖</button>
-              <button type="button" disabled>◉</button>
-              <button type="button" disabled>−</button>
-              <button type="button" disabled>□</button>
-              <button type="button" disabled>⌁</button>
-              <button type="button" disabled>📏</button>
-              <button type="button" disabled>◌</button>
-              <button type="button" disabled>🔒</button>
+              <button type="button" className={chartToolState.crosshair ? "active" : ""} onClick={() => setChartToolState((state) => ({ ...state, crosshair: marketChartRef.current?.toggleCrosshair() ?? state.crosshair }))} title="Crosshair">⌖</button>
+              <button type="button" className={chartToolState.ema20 ? "active" : ""} onClick={() => setChartToolState((state) => ({ ...state, ema20: marketChartRef.current?.toggleIndicator("ema20") ?? state.ema20 }))} title="EMA 20">20</button>
+              <button type="button" className={chartToolState.ema50 ? "active" : ""} onClick={() => setChartToolState((state) => ({ ...state, ema50: marketChartRef.current?.toggleIndicator("ema50") ?? state.ema50 }))} title="EMA 50">50</button>
+              <button type="button" className={chartToolState.bollinger ? "active" : ""} onClick={() => setChartToolState((state) => ({ ...state, bollinger: marketChartRef.current?.toggleIndicator("bollinger") ?? state.bollinger }))} title="Bollinger Bands">BB</button>
+              <button type="button" className={chartToolState.volume ? "active" : ""} onClick={() => setChartToolState((state) => ({ ...state, volume: marketChartRef.current?.toggleVolume() ?? state.volume }))} title="Volume">V</button>
+              <button type="button" onClick={() => marketChartRef.current?.zoom("in")} title="Zoom in">+</button>
+              <button type="button" onClick={() => marketChartRef.current?.zoom("out")} title="Zoom out">−</button>
+              <button type="button" onClick={() => marketChartRef.current?.reset()} title="Reset chart view">↺</button>
+              <button type="button" onClick={() => marketChartRef.current?.fullscreen()} title="Fullscreen">⛶</button>
             </div>
             <div className="chart-stage">
               <MarketChart
+                ref={marketChartRef}
                 candles={candles}
                 symbol={symbol}
                 connected={chartConnected}

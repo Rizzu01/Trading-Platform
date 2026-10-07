@@ -2,7 +2,7 @@ import os
 
 os.environ.setdefault("SECRET_KEY", "x" * 32)
 os.environ.setdefault("JWT_SECRET_KEY", "y" * 32)
-os.environ.setdefault("ENCRYPTION_KEY", "z" * 32)
+os.environ.setdefault("ENCRYPTION_KEY", "Wj1Jw4g3jv6YvYj9j1d3c8Qh6k2m7n0p5r4s3t2u1v0=")
 os.environ.setdefault("DATABASE_HOST", "localhost")
 os.environ.setdefault("DATABASE_PORT", "5432")
 os.environ.setdefault("DATABASE_NAME", "test_trading")

@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:3000"
     DEFAULT_TESTNET: bool = True
 
+    AI_PROVIDER: str = "openrouter"
+    AI_MODEL: str = "openai/gpt-4o-mini"
+    OPENROUTER_API_KEY: str = ""
+    OPENAI_API_KEY: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

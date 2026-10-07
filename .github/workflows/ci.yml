@@ -1,8 +1,11 @@
 name: CI
 
+# Latest integration verification
+
 on:
+  workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ["main", "feature/**"]
   pull_request:
     branches: ["main"]
 

@@ -97,3 +97,22 @@ class ExchangeService:
             {"timestamp": c[0], "open": c[1], "high": c[2], "low": c[3], "close": c[4], "volume": c[5]}
             for c in candles
         ]}
+
+
+    @staticmethod
+    def get_positions(db: Session, user_id: UUID, exchange_id: UUID):
+        client = ExchangeService._client(db, user_id, exchange_id)
+        if not hasattr(client, "get_positions"):
+            raise NotImplementedError("Positions are not supported by this exchange adapter.")
+        return {"success": True, "positions": client.get_positions()}
+
+    @staticmethod
+    def set_leverage(db: Session, user_id: UUID, exchange_id: UUID, symbol: str, leverage: int):
+        if leverage < 1 or leverage > 125:
+            raise ValueError("Leverage must be between 1 and 125.")
+        client = ExchangeService._client(db, user_id, exchange_id)
+        if not hasattr(client, "set_leverage"):
+            raise NotImplementedError("Leverage is not supported by this exchange adapter.")
+        if "/" not in symbol and symbol.upper().endswith("USDT"):
+            symbol = symbol[:-4] + "/USDT"
+        return {"success": True, "result": client.set_leverage(symbol.upper(), leverage)}

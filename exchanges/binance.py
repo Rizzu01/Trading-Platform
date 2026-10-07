@@ -72,5 +72,10 @@ class BinanceExchange:
     def limit_sell(self, symbol: str, amount: float, price: float):
         return self.client.create_limit_sell_order(symbol, amount, price)
 
+    def set_leverage(self, symbol: str, leverage: int):
+        if self.market_type not in {"usdm", "coinm"}:
+            raise NotImplementedError("Leverage is only available for futures markets.")
+        return self.client.set_leverage(leverage, symbol)
+
     def cancel_order(self, order_id: str, symbol: str):
         return self.client.cancel_order(order_id, symbol)

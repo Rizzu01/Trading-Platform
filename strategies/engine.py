@@ -102,10 +102,164 @@ def regime_rsi_signal(candles: list[dict], index: int) -> Signal:
     return Signal(0, 25, f"No range extreme: RSI {r:.1f}, ADX {x:.1f}.")
 
 
+def _sma(values, period):
+    out = [None] * len(values)
+    if len(values) < period:
+        return out
+    running = sum(values[:period])
+    out[period - 1] = running / period
+    for i in range(period, len(values)):
+        running += values[i] - values[i - period]
+        out[i] = running / period
+    return out
+
+
+def _macd(closes, fast=12, slow=26, signal_period=9):
+    fast_v = ema(closes, fast)
+    slow_v = ema(closes, slow)
+    line = [None if fast_v[i] is None or slow_v[i] is None else fast_v[i] - slow_v[i] for i in range(len(closes))]
+    clean = [x if x is not None else 0.0 for x in line]
+    signal = ema(clean, signal_period)
+    hist = [None if line[i] is None or signal[i] is None else line[i] - signal[i] for i in range(len(closes))]
+    return line, signal, hist
+
+
+def ema_rsi_signal(candles, index):
+    closes = [x["close"] for x in candles]
+    e20, e50, r, a = ema(closes, 20), ema(closes, 50), rsi(closes, 14), atr(candles, 14)
+    if not all(finite(x) for x in (e20[index], e50[index], r[index], a[index])):
+        return Signal(0, 0, "Waiting for EMA/RSI history.")
+    if e20[index] > e50[index] and r[index] > 55:
+        return Signal(1, min(92, int(55 + (r[index] - 55))), f"EMA trend bullish and RSI {r[index]:.1f} confirms momentum.", float(a[index]) * 2)
+    if e20[index] < e50[index] and r[index] < 45:
+        return Signal(-1, min(92, int(55 + (45 - r[index]))), f"EMA trend bearish and RSI {r[index]:.1f} confirms momentum.", float(a[index]) * 2)
+    return Signal(0, 25, "EMA trend and RSI are not aligned.")
+
+
+def rsi_reversal_signal(candles, index):
+    closes = [x["close"] for x in candles]
+    r = rsi(closes, 14)
+    a = atr(candles, 14)
+    if not all(finite(x) for x in (r[index], a[index])) or index < 1:
+        return Signal(0, 0, "Waiting for RSI reversal history.")
+    prev, cur = r[index - 1], r[index]
+    if prev < 30 and cur > prev:
+        return Signal(1, 68, f"RSI reversal from oversold: {cur:.1f}.", float(a[index]) * 1.8)
+    if prev > 70 and cur < prev:
+        return Signal(-1, 68, f"RSI reversal from overbought: {cur:.1f}.", float(a[index]) * 1.8)
+    return Signal(0, 25, f"No confirmed RSI reversal: {cur:.1f}.")
+
+
+def macd_momentum_signal(candles, index):
+    closes = [x["close"] for x in candles]
+    line, sig, hist = _macd(closes)
+    e50 = ema(closes, 50)
+    a = atr(candles, 14)
+    if not all(finite(x) for x in (line[index], sig[index], hist[index], e50[index], a[index])) or index < 1:
+        return Signal(0, 0, "Waiting for MACD history.")
+    cross_up = line[index] > sig[index] and line[index - 1] <= sig[index - 1]
+    cross_down = line[index] < sig[index] and line[index - 1] >= sig[index - 1]
+    if cross_up and closes[index] > e50[index] and hist[index] > 0:
+        return Signal(1, 72, "MACD bullish cross with positive histogram above EMA50.", float(a[index]) * 2)
+    if cross_down and closes[index] < e50[index] and hist[index] < 0:
+        return Signal(-1, 72, "MACD bearish cross with negative histogram below EMA50.", float(a[index]) * 2)
+    return Signal(0, 25, "No confirmed MACD momentum trigger.")
+
+
+def vwap_signal(candles, index):
+    if index < 20:
+        return Signal(0, 0, "Waiting for VWAP history.")
+    start = max(0, index - 19)
+    window = candles[start:index + 1]
+    pv = sum(((x["high"] + x["low"] + x["close"]) / 3) * x["volume"] for x in window)
+    vol = sum(x["volume"] for x in window)
+    vwap = pv / vol if vol > 0 else None
+    avg_volume = sum(x["volume"] for x in window) / len(window)
+    price = candles[index]["close"]
+    a = atr(candles, 14)[index]
+    if vwap is None or not finite(a):
+        return Signal(0, 0, "Insufficient volume for VWAP.")
+    if price > vwap and candles[index]["volume"] > avg_volume:
+        return Signal(1, 67, f"Price above VWAP {vwap:.2f} with above-average volume.", float(a) * 2)
+    if price < vwap and candles[index]["volume"] > avg_volume:
+        return Signal(-1, 67, f"Price below VWAP {vwap:.2f} with above-average volume.", float(a) * 2)
+    return Signal(0, 25, "Price/volume are not confirming VWAP momentum.")
+
+
+def breakout_signal(candles, index):
+    if index < 20:
+        return Signal(0, 0, "Waiting for breakout history.")
+    highs = [x["high"] for x in candles]
+    lows = [x["low"] for x in candles]
+    upper, lower = max(highs[index - 20:index]), min(lows[index - 20:index])
+    price = candles[index]["close"]
+    a = atr(candles, 14)[index]
+    if not finite(a):
+        return Signal(0, 0, "ATR unavailable.")
+    if price > upper:
+        return Signal(1, 70, "Price broke the previous 20-bar high.", float(a) * 2.2)
+    if price < lower:
+        return Signal(-1, 70, "Price broke the previous 20-bar low.", float(a) * 2.2)
+    return Signal(0, 25, "No range breakout confirmed.")
+
+
+def volume_breakout_signal(candles, index):
+    if index < 21:
+        return Signal(0, 0, "Waiting for volume breakout history.")
+    highs = [x["high"] for x in candles]
+    lows = [x["low"] for x in candles]
+    avg = sum(x["volume"] for x in candles[index - 20:index]) / 20
+    price = candles[index]["close"]
+    a = atr(candles, 14)[index]
+    if not finite(a) or avg <= 0:
+        return Signal(0, 0, "Volume/ATR unavailable.")
+    if candles[index]["volume"] > avg * 1.5 and price > max(highs[index - 20:index]):
+        return Signal(1, 78, f"Upside breakout with volume {candles[index]['volume'] / avg:.1f}x average.", float(a) * 2.2)
+    if candles[index]["volume"] > avg * 1.5 and price < min(lows[index - 20:index]):
+        return Signal(-1, 78, f"Downside breakout with volume {candles[index]['volume'] / avg:.1f}x average.", float(a) * 2.2)
+    return Signal(0, 25, "No high-volume breakout.")
+
+
+def mean_reversion_signal(candles, index):
+    closes = [x["close"] for x in candles]
+    r = rsi(closes, 14)
+    x = adx(candles, 14)
+    middle, upper, lower = bollinger(closes, 20, 2)
+    a = atr(candles, 14)
+    if not all(finite(v) for v in (r[index], x[index], upper[index], lower[index], a[index])):
+        return Signal(0, 0, "Waiting for mean-reversion history.")
+    if x[index] < 20 and closes[index] <= lower[index] and r[index] < 35:
+        return Signal(1, 70, f"Low-trend oversold reversion: RSI {r[index]:.1f}.", float(a[index]) * 1.5)
+    if x[index] < 20 and closes[index] >= upper[index] and r[index] > 65:
+        return Signal(-1, 70, f"Low-trend overbought reversion: RSI {r[index]:.1f}.", float(a[index]) * 1.5)
+    return Signal(0, 25, "Mean-reversion conditions are not aligned.")
+
+
+def momentum_signal(candles, index):
+    closes = [x["close"] for x in candles]
+    e20, e50, r, a = ema(closes, 20), ema(closes, 50), rsi(closes, 14), atr(candles, 14)
+    if not all(finite(v) for v in (e20[index], e50[index], r[index], a[index])) or index < 20:
+        return Signal(0, 0, "Waiting for momentum history.")
+    avg_volume = sum(x["volume"] for x in candles[index - 20:index]) / 20
+    if e20[index] > e50[index] and r[index] > 55 and candles[index]["volume"] > avg_volume:
+        return Signal(1, 74, f"Trend, RSI {r[index]:.1f}, and volume confirm bullish momentum.", float(a[index]) * 2)
+    if e20[index] < e50[index] and r[index] < 45 and candles[index]["volume"] > avg_volume:
+        return Signal(-1, 74, f"Trend, RSI {r[index]:.1f}, and volume confirm bearish momentum.", float(a[index]) * 2)
+    return Signal(0, 25, "Momentum factors are not aligned.")
+
+
 STRATEGY_FUNCTIONS = {
     "adaptive_trend": adaptive_trend_signal,
     "donchian_ensemble": donchian_signal,
     "regime_rsi": regime_rsi_signal,
+    "ema_rsi": ema_rsi_signal,
+    "rsi_reversal": rsi_reversal_signal,
+    "macd_momentum": macd_momentum_signal,
+    "vwap": vwap_signal,
+    "breakout": breakout_signal,
+    "volume_breakout": volume_breakout_signal,
+    "mean_reversion": mean_reversion_signal,
+    "momentum": momentum_signal,
 }
 
 

@@ -36,6 +36,7 @@ function App() {
   const [exchangeMessage, setExchangeMessage] = useState("");
   const [selectedExchangeId, setSelectedExchangeId] = useState(null);
   const [balance, setBalance] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("positions");
   const [positions, setPositions] = useState([]);
   const [openOrders, setOpenOrders] = useState([]);
@@ -189,6 +190,26 @@ function App() {
   const effectivePrice = Number(priceInput || price || 0);
   const estimatedCost = Number(amount || 0) * effectivePrice;
 
+  const previewOrder = () => {
+    setOrderMessage("");
+    const quantity = Number(amount);
+    const selectedPrice = Number(priceInput || price);
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setOrderMessage("Enter a valid amount.");
+      return;
+    }
+    if (orderType === "limit" && (!Number.isFinite(selectedPrice) || selectedPrice <= 0)) {
+      setOrderMessage("Enter a valid limit price.");
+      return;
+    }
+    if (!selectedExchangeId) {
+      setOrderMessage("Connect and select an exchange first.");
+      return;
+    }
+    setPreviewOpen(true);
+  };
+
   const formattedPrice = useMemo(
     () => Number(price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     [price]
@@ -252,8 +273,9 @@ function App() {
           <label>Price<input value={Number(price).toFixed(2)} readOnly /></label>
           <label>Amount<input placeholder="0.00 BTC" /></label>
           <div className="slider"><span /><span /><span /><span /><span /></div>
-          <div className="summary"><span>Est. cost</span><b>$0.00 USDT</b></div>
-          <button className="primary">Buy {symbol.split("/")[0]}</button>
+          <div className="summary"><span>Est. cost</span><b>{estimatedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT</b></div>
+          {orderMessage && <div className="order-message">{orderMessage}</div>}
+          <button className="primary" onClick={previewOrder}>{side === "buy" ? "Preview Buy" : "Preview Sell"} {symbol.split("/")[0]}</button>
         </aside>
       </section>
 
@@ -294,6 +316,31 @@ function App() {
           ))}</div> : <div className="empty"><strong>No order history</strong><span>Completed and cancelled orders will appear here.</span></div>
         )}
       </section>
+
+      {previewOpen && (
+        <div className="auth-overlay">
+          <div className="auth-card">
+            <div className="auth-head">
+              <div>
+                <b>Order preview</b>
+                <small>Review the order details before connecting execution.</small>
+              </div>
+              <button type="button" onClick={() => setPreviewOpen(false)}>×</button>
+            </div>
+            <div className="order-confirm">
+              <div><span>Side</span><b className={side === "buy" ? "up" : "down"}>{side.toUpperCase()}</b></div>
+              <div><span>Pair</span><b>{symbol}</b></div>
+              <div><span>Type</span><b>{orderType.toUpperCase()}</b></div>
+              <div><span>Amount</span><b>{amount} {symbol.split("/")[0]}</b></div>
+              {orderType === "limit" && <div><span>Limit price</span><b>{Number(priceInput).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}</b></div>}
+              <div><span>Estimated cost</span><b>{estimatedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT</b></div>
+              <div><span>Exchange</span><b>{exchanges.find((item) => item.id === selectedExchangeId)?.exchange_name || "Connected exchange"}</b></div>
+            </div>
+            <div className="order-message">Preview only — no order has been submitted to the exchange.</div>
+            <button className="primary" onClick={() => setPreviewOpen(false)}>Close Preview</button>
+          </div>
+        </div>
+      )}
 
       {authMode && (
         <div className="auth-overlay">

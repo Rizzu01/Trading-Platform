@@ -1,28 +1,180 @@
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import {
   CandlestickSeries,
   HistogramSeries,
+  LineSeries,
   createChart,
   CrosshairMode,
 } from "lightweight-charts";
 
 const CHART_HEIGHT = 270;
 
-export default function MarketChart({
-  candles = [],
-  symbol,
-  connected,
-  loading,
-  error,
-  theme = "system",
-}) {
+function ema(values, period) {
+  const output = Array(values.length).fill(null);
+  if (values.length < period) return output;
+  let previous = values.slice(0, period).reduce((sum, value) => sum + value, 0) / period;
+  output[period - 1] = previous;
+  const alpha = 2 / (period + 1);
+  for (let index = period; index < values.length; index += 1) {
+    previous = values[index] * alpha + previous * (1 - alpha);
+    output[index] = previous;
+  }
+  return output;
+}
+
+function sma(values, period) {
+  const output = Array(values.length).fill(null);
+  if (values.length < period) return output;
+  let sum = 0;
+  for (let index = 0; index < values.length; index += 1) {
+    sum += values[index];
+    if (index >= period) sum -= values[index - period];
+    if (index >= period - 1) output[index] = sum / period;
+  }
+  return output;
+}
+
+function bollinger(values, period = 20, multiplier = 2) {
+  const middle = sma(values, period);
+  const upper = Array(values.length).fill(null);
+  const lower = Array(values.length).fill(null);
+  for (let index = period - 1; index < values.length; index += 1) {
+    const window = values.slice(index - period + 1, index + 1);
+    const mean = middle[index];
+    const variance = window.reduce((total, value) => total + ((value - mean) ** 2), 0) / period;
+    const deviation = Math.sqrt(variance);
+    upper[index] = mean + (multiplier * deviation);
+    lower[index] = mean - (multiplier * deviation);
+  }
+  return { middle, upper, lower };
+}
+
+const MarketChart = forwardRef(function MarketChart(
+  {
+    candles = [],
+    symbol,
+    connected,
+    loading,
+    error,
+    theme = "system",
+  },
+  ref
+) {
   const containerRef = useRef(null);
+  const shellRef = useRef(null);
   const chartRef = useRef(null);
   const candleSeriesRef = useRef(null);
+  const lineSeriesRef = useRef(null);
   const volumeSeriesRef = useRef(null);
+  const ema20Ref = useRef(null);
+  const ema50Ref = useRef(null);
+  const bbMiddleRef = useRef(null);
+  const bbUpperRef = useRef(null);
+  const bbLowerRef = useRef(null);
   const hasFittedRef = useRef(false);
   const followRealtimeRef = useRef(true);
   const dataLengthRef = useRef(0);
+  const toolStateRef = useRef({
+    crosshair: true,
+    volume: true,
+    candles: true,
+    ema20: false,
+    ema50: false,
+    bollinger: false,
+    autoScale: true,
+  });
+
+  useImperativeHandle(ref, () => ({
+    toggleCrosshair() {
+      const chart = chartRef.current;
+      if (!chart) return toolStateRef.current.crosshair;
+      const next = !toolStateRef.current.crosshair;
+      toolStateRef.current.crosshair = next;
+      chart.applyOptions({
+        crosshair: {
+          mode: next ? CrosshairMode.Normal : CrosshairMode.Hidden,
+        },
+      });
+      return next;
+    },
+    toggleVolume() {
+      const series = volumeSeriesRef.current;
+      if (!series) return toolStateRef.current.volume;
+      const next = !toolStateRef.current.volume;
+      toolStateRef.current.volume = next;
+      series.applyOptions({ visible: next });
+      return next;
+    },
+    toggleChartType() {
+      const candleSeries = candleSeriesRef.current;
+      const lineSeries = lineSeriesRef.current;
+      if (!candleSeries || !lineSeries) return toolStateRef.current.candles;
+      const next = !toolStateRef.current.candles;
+      toolStateRef.current.candles = next;
+      candleSeries.applyOptions({ visible: next });
+      lineSeries.applyOptions({ visible: !next });
+      return next;
+    },
+    toggleIndicator(name) {
+      const mapping = {
+        ema20: ema20Ref.current,
+        ema50: ema50Ref.current,
+        bollinger: [bbMiddleRef.current, bbUpperRef.current, bbLowerRef.current],
+      };
+      const target = mapping[name];
+      if (!target) return false;
+      const current = toolStateRef.current[name];
+      const next = !current;
+      toolStateRef.current[name] = next;
+      if (Array.isArray(target)) {
+        target.forEach((series) => series?.applyOptions({ visible: next }));
+      } else {
+        target.applyOptions({ visible: next });
+      }
+      return next;
+    },
+    zoom(direction) {
+      const chart = chartRef.current;
+      if (!chart) return;
+      const range = chart.timeScale().getVisibleLogicalRange();
+      if (!range) return;
+      const center = (range.from + range.to) / 2;
+      const half = (range.to - range.from) / 2;
+      const factor = direction === "in" ? 0.78 : 1.28;
+      chart.timeScale().setVisibleLogicalRange({
+        from: center - (half * factor),
+        to: center + (half * factor),
+      });
+      followRealtimeRef.current = false;
+    },
+    reset() {
+      const chart = chartRef.current;
+      if (!chart) return;
+      chart.timeScale().fitContent();
+      followRealtimeRef.current = true;
+      hasFittedRef.current = true;
+    },
+    toggleAutoScale() {
+      const chart = chartRef.current;
+      if (!chart) return toolStateRef.current.autoScale;
+      const next = !toolStateRef.current.autoScale;
+      toolStateRef.current.autoScale = next;
+      chart.priceScale("right").setAutoScale(next);
+      return next;
+    },
+    fullscreen() {
+      const node = shellRef.current;
+      if (!node) return;
+      if (document.fullscreenElement) {
+        document.exitFullscreen?.();
+      } else {
+        node.requestFullscreen?.();
+      }
+    },
+    getState() {
+      return { ...toolStateRef.current };
+    },
+  }), []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -36,6 +188,8 @@ export default function MarketChart({
     const down = styles.getPropertyValue("--chart-down").trim();
     const volumeUp = styles.getPropertyValue("--chart-volume-up").trim();
     const volumeDown = styles.getPropertyValue("--chart-volume-down").trim();
+    const accent = styles.getPropertyValue("--accent").trim();
+    const muted = styles.getPropertyValue("--text-muted").trim();
 
     const chart = createChart(containerRef.current, {
       height: CHART_HEIGHT,
@@ -61,8 +215,8 @@ export default function MarketChart({
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: grid, width: 1 },
-        horzLine: { color: grid, width: 1 },
+        vertLine: { color: accent, width: 1, labelBackgroundColor: accent },
+        horzLine: { color: muted, width: 1, labelBackgroundColor: accent },
       },
       handleScroll: {
         mouseWheel: true,
@@ -87,12 +241,61 @@ export default function MarketChart({
       lastValueVisible: true,
     });
 
+    const lineSeries = chart.addSeries(LineSeries, {
+      color: accent,
+      lineWidth: 2,
+      priceLineVisible: true,
+      lastValueVisible: true,
+      visible: false,
+    });
+
     const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: "volume" },
       priceScaleId: "",
       color: volumeUp,
       lastValueVisible: false,
       priceLineVisible: false,
+    });
+
+    const ema20 = chart.addSeries(LineSeries, {
+      color: accent,
+      lineWidth: 1,
+      lastValueVisible: false,
+      priceLineVisible: false,
+      visible: false,
+    });
+
+    const ema50 = chart.addSeries(LineSeries, {
+      color: muted,
+      lineWidth: 1,
+      lastValueVisible: false,
+      priceLineVisible: false,
+      visible: false,
+    });
+
+    const bbMiddle = chart.addSeries(LineSeries, {
+      color: accent,
+      lineWidth: 1,
+      lineStyle: 2,
+      lastValueVisible: false,
+      priceLineVisible: false,
+      visible: false,
+    });
+
+    const bbUpper = chart.addSeries(LineSeries, {
+      color: muted,
+      lineWidth: 1,
+      lastValueVisible: false,
+      priceLineVisible: false,
+      visible: false,
+    });
+
+    const bbLower = chart.addSeries(LineSeries, {
+      color: muted,
+      lineWidth: 1,
+      lastValueVisible: false,
+      priceLineVisible: false,
+      visible: false,
     });
 
     chart.priceScale("").applyOptions({
@@ -110,7 +313,22 @@ export default function MarketChart({
 
     chartRef.current = chart;
     candleSeriesRef.current = candleSeries;
+    lineSeriesRef.current = lineSeries;
     volumeSeriesRef.current = volumeSeries;
+    ema20Ref.current = ema20;
+    ema50Ref.current = ema50;
+    bbMiddleRef.current = bbMiddle;
+    bbUpperRef.current = bbUpper;
+    bbLowerRef.current = bbLower;
+    toolStateRef.current = {
+      crosshair: true,
+      volume: true,
+      candles: true,
+      ema20: false,
+      ema50: false,
+      bollinger: false,
+      autoScale: true,
+    };
 
     const resizeObserver = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width;
@@ -125,7 +343,13 @@ export default function MarketChart({
       chart.remove();
       chartRef.current = null;
       candleSeriesRef.current = null;
+      lineSeriesRef.current = null;
       volumeSeriesRef.current = null;
+      ema20Ref.current = null;
+      ema50Ref.current = null;
+      bbMiddleRef.current = null;
+      bbUpperRef.current = null;
+      bbLowerRef.current = null;
       hasFittedRef.current = false;
       followRealtimeRef.current = true;
       dataLengthRef.current = 0;
@@ -142,6 +366,7 @@ export default function MarketChart({
         high: Number(item.high),
         low: Number(item.low),
         close: Number(item.close),
+        volume: Math.max(Number(item.volume || 0), 0),
       }))
       .filter(
         (item) =>
@@ -160,16 +385,6 @@ export default function MarketChart({
       else unique.push(item);
     }
 
-    const volume = unique.map((item) => {
-      const source = candles.find(
-        (candle) => Math.floor(Number(candle.timestamp) / 1000) === item.time
-      );
-      return {
-        time: item.time,
-        value: Math.max(Number(source?.volume || 0), 0),
-      };
-    });
-
     if (!unique.length) {
       hasFittedRef.current = false;
       dataLengthRef.current = 0;
@@ -183,15 +398,34 @@ export default function MarketChart({
       }
     }
 
+    const closes = unique.map((item) => item.close);
+    const ema20 = ema(closes, 20);
+    const ema50 = ema(closes, 50);
+    const bands = bollinger(closes, 20, 2);
+
+    const asLine = (values) => unique
+      .map((item, index) => ({
+        time: item.time,
+        value: values[index],
+      }))
+      .filter((item) => Number.isFinite(item.value));
+
     candleSeriesRef.current.setData(unique);
+    lineSeriesRef.current.setData(unique.map((item) => ({ time: item.time, value: item.close })));
     volumeSeriesRef.current.setData(
-      volume.map((item, index) => ({
-        ...item,
-        color: unique[index].close >= unique[index].open
+      unique.map((item) => ({
+        time: item.time,
+        value: item.volume,
+        color: item.close >= item.open
           ? getComputedStyle(document.documentElement).getPropertyValue("--chart-volume-up").trim()
           : getComputedStyle(document.documentElement).getPropertyValue("--chart-volume-down").trim(),
       }))
     );
+    ema20Ref.current?.setData(asLine(ema20));
+    ema50Ref.current?.setData(asLine(ema50));
+    bbMiddleRef.current?.setData(asLine(bands.middle));
+    bbUpperRef.current?.setData(asLine(bands.upper));
+    bbLowerRef.current?.setData(asLine(bands.lower));
 
     if (!hasFittedRef.current) {
       chartRef.current.timeScale().fitContent();
@@ -205,7 +439,7 @@ export default function MarketChart({
   }, [candles]);
 
   return (
-    <div className="market-chart">
+    <div ref={shellRef} className="market-chart">
       <div ref={containerRef} className="real-chart-canvas" />
       {loading && !candles.length && <div className="chart-state">Loading live candles…</div>}
       {!loading && error && !candles.length && (
@@ -223,5 +457,7 @@ export default function MarketChart({
         <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">TradingView</a>
       </div>
     </div>
-  )
-}
+  );
+});
+
+export default MarketChart;

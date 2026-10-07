@@ -2,11 +2,11 @@ from uuid import UUID
 
 import pytest
 
-from services.order_service import OrderService
+from services.order_service import _normalize_symbol
 
 
 def test_normalize_symbol_accepts_common_formats():
-    assert OrderService._normalize_symbol("BTCUSDT") == "BTC/USDT"
+    assert _normalize_symbol("BTCUSDT") == "BTC/USDT"
     assert OrderService._normalize_symbol("BTC/USDT") == "BTC/USDT"
 
 

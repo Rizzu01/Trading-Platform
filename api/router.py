@@ -7,6 +7,7 @@ from routes.order import router as order_router
 from routes.market import router as market_router
 from routes.strategies import router as strategies_router
 from routes.ai import router as ai_router
+from routes.scanner import router as scanner_router
 
 api_router = APIRouter()
 

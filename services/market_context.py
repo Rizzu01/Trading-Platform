@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 import requests
 
-from strategies.indicators import adx, atr, bollinger, ema, rsi, sma
+from strategies.indicators import adx, atr, bollinger, ema, rsi
 
 
 BINANCE_SPOT = "https://api.binance.com"
@@ -47,7 +47,13 @@ class MarketContextService:
         e20, e50 = ema(closes, 20), ema(closes, 50)
         rsi14, atr14, adx14 = rsi(closes, 14), atr(candles, 14), adx(candles, 14)
         middle, upper, lower = bollinger(closes, 20, 2)
-        vol_sma = sma(volumes, 20)
+        vol_sma = [None] * len(volumes)
+        if len(volumes) >= 20:
+            running_volume = sum(volumes[:20])
+            vol_sma[19] = running_volume / 20
+            for i in range(20, len(volumes)):
+                running_volume += volumes[i] - volumes[i - 20]
+                vol_sma[i] = running_volume / 20
 
         last = len(candles) - 1
         price = closes[last]

@@ -31,6 +31,8 @@ function App() {
   const [exchanges, setExchanges] = useState([]);
   const [exchangeName, setExchangeName] = useState("binance");
   const [marketType, setMarketType] = useState("spot");
+  const [leverage, setLeverage] = useState(10);
+  const [marginMode, setMarginMode] = useState("isolated");
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
   const [exchangeMessage, setExchangeMessage] = useState("");
@@ -267,6 +269,21 @@ function App() {
 
         <aside className="order panel">
           <div className="panel-title"><b>Order</b><span>{marketType === "usdm" ? "USDT-M" : marketType === "coinm" ? "Coin-M" : "Spot"}</span></div>
+          {marketType !== "spot" && (
+            <div className="futures-controls">
+              <label>Margin mode
+                <select value={marginMode} onChange={(e) => setMarginMode(e.target.value)}>
+                  <option value="isolated">Isolated</option>
+                  <option value="cross">Cross</option>
+                </select>
+              </label>
+              <label>Leverage
+                <select value={leverage} onChange={(e) => setLeverage(Number(e.target.value))}>
+                  {[1, 2, 3, 5, 10, 20, 25, 50, 75, 100].map((value) => <option key={value} value={value}>{value}×</option>)}
+                </select>
+              </label>
+            </div>
+          )}
           <div className="segmented"><button className={side === "buy" ? "active buy" : ""} onClick={() => setSide("buy")}>Buy</button><button className={side === "sell" ? "active sell" : ""} onClick={() => setSide("sell")}>Sell</button></div>
           <div className="balance">Available <b>{balance?.free?.USDT != null ? `${Number(balance.free.USDT).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Connect exchange"}</b></div>
           <label>Order type<select value={orderType} onChange={(e) => { setOrderType(e.target.value); setOrderMessage(""); }}><option value="limit">Limit</option><option value="market">Market</option></select></label>
@@ -274,6 +291,12 @@ function App() {
           <label>Amount<input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder={`0.00 ${symbol.split("/")[0]}`} /></label>
           <div className="slider"><span /><span /><span /><span /><span /></div>
           <div className="summary"><span>Est. cost</span><b>{estimatedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT</b></div>
+          {marketType !== "spot" && (
+            <div className="summary futures-summary">
+              <span>Est. margin</span>
+              <b>{(estimatedCost / leverage).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT</b>
+            </div>
+          )}
           {orderMessage && <div className="order-message">{orderMessage}</div>}
           <button className="primary" onClick={previewOrder}>{side === "buy" ? "Preview Buy" : "Preview Sell"} {symbol.split("/")[0]}</button>
         </aside>
@@ -334,6 +357,7 @@ function App() {
               <div><span>Amount</span><b>{amount} {symbol.split("/")[0]}</b></div>
               {orderType === "limit" && <div><span>Limit price</span><b>{Number(priceInput || price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 })}</b></div>}
               <div><span>Estimated cost</span><b>{estimatedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT</b></div>
+              {marketType !== "spot" && <div><span>Margin / leverage</span><b>{marginMode} · {leverage}×</b></div>}
               <div><span>Exchange</span><b>{exchanges.find((item) => item.id === selectedExchangeId)?.exchange_name || "Connected exchange"}</b></div>
             </div>
             <div className="order-message">Preview only — no order has been submitted to the exchange.</div>

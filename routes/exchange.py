@@ -101,7 +101,7 @@ def delete_exchange(
     "/{exchange_id}/balance",
 )
 def get_balance(
-    exchange_id,
+    exchange_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

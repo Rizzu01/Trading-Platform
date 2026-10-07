@@ -840,6 +840,7 @@ function App() {
                 
               >AI Copilot</button>
           <button className="nav-link scanner-nav-link" type="button" onClick={() => { setScannerOpen(true); runMarketScanner(); }}>Scanner</button>
+          <button className="nav-link paper-nav-link" type="button" onClick={() => setPaperTradingOpen(true)}>Paper Trade</button>
           <button className="nav-link" type="button" disabled title="Markets page is not implemented yet">Markets</button>
           <button className="nav-link" type="button" disabled title="Portfolio page is not implemented yet">Portfolio</button>
           <button className="nav-link" type="button" disabled title="Orders page is not implemented yet">Orders</button>

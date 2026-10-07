@@ -70,3 +70,7 @@ small { color: #747b85; font-size: 11px; }
 .connected-list { margin-top:14px; display:flex; flex-direction:column; gap:7px; }
 .connected-list div { display:flex; justify-content:space-between; align-items:center; padding:9px 10px; border:1px solid #24282d; border-radius:7px; background:#0d0f12; font-size:12px; }
 .connected-list span { color:#737b84; font-size:11px; }
+
+.exchange-item { width:100%; display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #24282d; border-radius:7px; background:#0d0f12; color:#e6e8eb; font-size:12px; cursor:pointer; text-align:left; }
+.exchange-item:hover, .exchange-item.selected { border-color:#56643d; background:#151914; }
+.exchange-item b { font-weight:700; }

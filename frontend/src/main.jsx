@@ -22,6 +22,11 @@ function App() {
   const [amount, setAmount] = useState("");
   const [priceInput, setPriceInput] = useState("");
   const [orderMessage, setOrderMessage] = useState("");
+  const [authMode, setAuthMode] = useState(null);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authName, setAuthName] = useState("");
+  const [authMessage, setAuthMessage] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -53,7 +58,7 @@ function App() {
     return () => socket?.close();
   }, [symbol]);
 
-  const price = ticker?.last ?? 67842.10;
+  const submitAuth = async () => {\n    setAuthMessage("Connecting...");\n    const endpoint = authMode === "register" ? "/api/v1/auth/register" : "/api/v1/auth/login";\n    const payload = authMode === "register" ? { full_name: authName, email: authEmail, password: authPassword } : { email: authEmail, password: authPassword };\n    try {\n      const response = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });\n      const data = await response.json();\n      if (!response.ok) throw new Error(data.detail || "Authentication failed");\n      if (authMode === "login") {\n        localStorage.setItem("access_token", data.access_token);\n        localStorage.setItem("refresh_token", data.refresh_token);\n      }\n      setAuthMessage(authMode === "register" ? "Account created. You can now sign in." : "Signed in successfully.");\n      if (authMode === "login") setAuthMode(null);\n    } catch (error) { setAuthMessage(error.message); }\n  };\n\n  const price = ticker?.last ?? 67842.10;
   const high = ticker?.high ?? 68421.90;
   const low = ticker?.low ?? 65903.20;
   const volume = ticker?.volume ?? 2.84e9;
@@ -85,7 +90,7 @@ function App() {
         <div className="brand">TRADE<span>LAB</span></div>
         <div className="search">⌕ Search markets</div>
         <div className="status"><i className={connected ? "online" : ""} /> {connected ? "Live market data" : "Demo market data"}</div>
-        <button className="profile">RK</button>
+        <button className="profile" onClick={() => { setAuthMode("login"); setAuthMessage(""); }}>RK</button>
       </header>
 
       <section className="marketbar">

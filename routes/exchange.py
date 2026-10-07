@@ -4,7 +4,7 @@ from uuid import UUID
 from database.session import get_db
 from dependencies.auth import get_current_user
 from models.user import User
-from schemas.exchange import (
+from schemas.market import OHLCVResponse, TickerResponse\nfrom schemas.exchange import (
     ExchangeCreate,
     ExchangeUpdate,
     ExchangeResponse,
@@ -141,7 +141,7 @@ def set_leverage(
     )
 
 
-@router.get("/{exchange_id}/ticker/{symbol}")
+@router.get("/{exchange_id}/ticker/{symbol}", response_model=TickerResponse)
 def get_ticker(
     exchange_id: UUID,
     symbol: str,
@@ -155,7 +155,7 @@ def get_ticker(
         symbol=symbol,
     )
 
-@router.get("/{exchange_id}/ohlcv/{symbol}")
+@router.get("/{exchange_id}/ohlcv/{symbol}", response_model=OHLCVResponse)
 def get_ohlcv(
     exchange_id: UUID,
     symbol: str,

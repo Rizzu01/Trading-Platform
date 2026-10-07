@@ -88,3 +88,7 @@ small { color: #747b85; font-size: 11px; }
 .order-confirm > div { display:flex; justify-content:space-between; gap:20px; padding:8px 0; border-bottom:1px solid #20242a; font-size:12px; }
 .order-confirm span { color:#747b85; }
 .order-confirm b { color:#eef0f2; text-align:right; }
+
+.futures-controls { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0; }
+.futures-controls label { margin:0; }
+.futures-summary { border-top:1px solid #20242a; padding-top:8px; }

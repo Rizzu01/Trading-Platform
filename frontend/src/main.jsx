@@ -728,7 +728,7 @@ function App() {
 
   return (
     <main className="terminal">
-            <header className="topbar">
+      <header className="topbar">
         <div className="brand">TRADE<span>LAB</span></div>
         <label className="search-box">
           <span aria-hidden="true">⌕</span>
@@ -736,28 +736,35 @@ function App() {
             ref={searchInputRef}
             value={marketSearch}
             onChange={(e) => setMarketSearch(e.target.value)}
-            placeholder="Search markets"
+            placeholder="Search symbol, token or pair"
             aria-label="Search markets"
           />
+          <kbd>⌘ K</kbd>
         </label>
+
         <nav className="topnav" aria-label="Primary navigation">
-          <button className="nav-link active">Trade</button>
+          <button className="nav-link active" type="button">Trade</button>
           <button className="nav-link" type="button" disabled title="Markets page is not implemented yet">Markets</button>
           <button className="nav-link" type="button" disabled title="Portfolio page is not implemented yet">Portfolio</button>
           <button className="nav-link" type="button" disabled title="Orders page is not implemented yet">Orders</button>
         </nav>
+
         <div className="top-actions">
           <div className={`market-connection ${displayedMarketConnection}`}>
             <i />
             <span>{marketType === "usdm" ? "Unavailable" : displayedMarketConnection === "connected" ? "Live" : displayedMarketConnection === "reconnecting" ? "Reconnecting" : displayedMarketConnection === "connecting" ? "Connecting" : displayedMarketConnection === "error" ? "Error" : "Disconnected"}</span>
-            <small>{marketType === "usdm" ? "Futures feed unavailable" : "Binance public spot feed"}</small>
           </div>
-          <select className="theme-select" value={theme} onChange={(e) => setTheme(e.target.value)} aria-label="Theme">
-            <option value="system">System</option>
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-          </select>
-          <button className="icon-button" type="button" disabled title="Notifications are not backed by a notification API yet">◌</button>
+          <button className="icon-button" type="button" disabled title="Notifications are not backed by a notification API yet">♧</button>
+          <button
+            className="icon-button"
+            type="button"
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+            title="Toggle dark/light theme"
+            aria-label="Toggle dark/light theme"
+          >
+            {theme === "light" ? "☼" : "☾"}
+          </button>
+          <button className="icon-button" type="button" disabled title="Settings are not implemented yet">☷</button>
           <div className="account-wrap">
             <button className="profile" onClick={() => setAccountMenuOpen((value) => !value)} aria-expanded={accountMenuOpen}>
               Connect account
@@ -783,22 +790,50 @@ function App() {
       </header>
 
       <section className="marketbar">
-        <div className="pair">
-          <strong>{symbol}</strong>
+        <button className="market-favorite" type="button" disabled title="Favorites are not backed by persisted market preferences yet">☆</button>
+        <button className="pair-selector" type="button">
+          <strong>{symbol}⌄</strong>
           <small>{MARKETS.find((item) => item.symbol === symbol)?.name || "Market asset"} / {quoteAsset}</small>
-        </div>
+        </button>
+
         <div className="market-price">
           <b>{price == null ? "—" : `$${formattedPrice}`}</b>
-                    <small className={marketType === "usdm" ? "down" : (changePercent != null && changePercent >= 0 ? "up" : "down")}>
+          <small className={marketType === "usdm" ? "down" : (changePercent != null && changePercent >= 0 ? "up" : "down")}>
             {marketType === "usdm" ? "Futures feed unavailable" : changePercent == null ? "Unavailable" : `${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%`}
           </small>
         </div>
-        <div><small>24h High</small><b>{formattedHigh === "—" ? "—" : `$${formattedHigh}`}</b></div>
-        <div><small>24h Low</small><b>{formattedLow === "—" ? "—" : `$${formattedLow}`}</b></div>
-        <div><small>24h Volume</small><b>{formattedVolume}</b></div>
+
+        <div className="market-stat">
+          <small>24h high</small>
+          <b>{formattedHigh === "—" ? "—" : `$${formattedHigh}`}</b>
+        </div>
+        <div className="market-stat">
+          <small>24h low</small>
+          <b>{formattedLow === "—" ? "—" : `$${formattedLow}`}</b>
+        </div>
+        <div className="market-stat">
+          <small>24h volume</small>
+          <b>{formattedVolume}</b>
+          <span>Reported live</span>
+        </div>
+        <div className="market-stat">
+          <small>24h change</small>
+          <b className={changePercent != null && changePercent >= 0 ? "up" : "down"}>
+            {changePercent == null ? "—" : `${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%`}
+          </b>
+        </div>
+
+        <div className="market-context">
+          <div className="status-badge-inline">
+            <i />
+            <span>{displayedMarketConnection === "connected" ? "Live" : displayedMarketConnection === "reconnecting" ? "Reconnecting" : "Snapshot only"}</span>
+          </div>
+          <small>{marketType === "usdm" ? "Futures feed unavailable" : "Binance public spot feed"}</small>
+        </div>
+
         <div className="market-mode">
-          <button className={marketType === "spot" ? "active" : ""} onClick={() => setMarketType("spot")}>Spot</button>
-          <button className={marketType === "usdm" ? "active" : ""} onClick={() => setMarketType("usdm")}>Futures</button>
+          <button className={marketType === "spot" ? "active" : ""} type="button" onClick={() => setMarketType("spot")}>SPOT</button>
+          <button className={marketType === "usdm" ? "active" : ""} type="button" onClick={() => setMarketType("usdm")}>FUTURES</button>
         </div>
       </section>
 

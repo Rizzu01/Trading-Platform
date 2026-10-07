@@ -1100,7 +1100,7 @@ function App() {
             onClick={previewOrder}
           >
             {marketType === "usdm"
-              ? "Futures trading unavailable"
+              ? "Futures execution unavailable"
               : orderSubmitting
                 ? "Submitting…"
                 : !selectedExchangeId

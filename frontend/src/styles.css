@@ -126,3 +126,10 @@ small { color: #747b85; font-size: 11px; }
 .balance-tabs button { border:0; background:transparent; color:#68717a; padding:0; font:inherit; font-size:10px; cursor:pointer; }
 .balance-tabs button.active { color:#b9ee45; }
 .connected-heading { color:#68717a; font-size:10px; text-transform:uppercase; letter-spacing:.06em; margin:12px 0 6px; }
+
+.chart-timeframes { display:flex; gap:12px; }
+.chart-timeframes .tab { font-size:10px; }
+.status { display:flex; align-items:center; gap:6px; }
+.status small { color:#59616a; font-size:9px; text-transform:uppercase; letter-spacing:.05em; }
+.market-button { width:100%; border:0; text-align:left; cursor:pointer; }
+.market-button:focus-visible { outline:1px solid #b9ee45; outline-offset:-1px; }

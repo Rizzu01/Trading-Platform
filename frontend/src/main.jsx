@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 import MarketChart from "./components/MarketChart";
 import StrategyLab from "./components/StrategyLab";
+import AICopilot from "./components/AICopilot";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 const BINANCE_DATA_BASE = "https://data-api.binance.vision";
@@ -159,7 +160,7 @@ function App() {
   const [dataState, setDataState] = useState({ positions: "", open: "", history: "" });
   const [theme, setTheme] = useState(() => localStorage.getItem("tradelab-theme") || "system");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const [strategyLabOpen, setStrategyLabOpen] = useState(false);
+  const [strategyLabOpen, setStrategyLabOpen] = useState(false);\n  const [aiCopilotOpen, setAiCopilotOpen] = useState(false);
   const [chartToolState, setChartToolState] = useState({
     crosshair: true,
     volume: true,
@@ -778,7 +779,7 @@ function App() {
 
         <nav className="topnav" aria-label="Primary navigation">
           <button className="nav-link active" type="button">Trade</button>
-          <button className="nav-link strategy-nav-link" type="button" onClick={() => setStrategyLabOpen(true)}>Strategy Lab</button>
+          <button className="nav-link strategy-nav-link" type="button" onClick={() => setStrategyLabOpen(true)}>Strategy Lab</button>\n          <button className="nav-link ai-nav-link" type="button" onClick={() => setAiCopilotOpen(true)}>AI Copilot</button>
           <button className="nav-link" type="button" disabled title="Markets page is not implemented yet">Markets</button>
           <button className="nav-link" type="button" disabled title="Portfolio page is not implemented yet">Portfolio</button>
           <button className="nav-link" type="button" disabled title="Orders page is not implemented yet">Orders</button>

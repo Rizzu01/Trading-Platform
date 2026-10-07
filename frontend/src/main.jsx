@@ -162,6 +162,12 @@ function App() {
     } catch (error) { setExchangeMessage(error.message); }
   };
 
+  useEffect(() => {
+    if (selectedExchangeId) {
+      loadTradingData(selectedExchangeId);
+    }
+  }, [selectedExchangeId, symbol]);
+
   const price = ticker?.last ?? 67842.10;
   const high = ticker?.high ?? 68421.90;
   const low = ticker?.low ?? 65903.20;

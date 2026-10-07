@@ -345,20 +345,44 @@ function App() {
           })}</div> : <div className="empty"><strong>No active positions</strong><span>Open futures positions will appear here.</span></div>
         )}
         {selectedExchangeId && activeTab === "open" && (
-          openOrders.length ? <div className="data-list">{openOrders.map((item, index) => (
-            <div className="data-row" key={item.id || item.external_order_id || index}>
-              <span><b>{item.symbol}</b><small>{item.side} · {item.type}</small></span>
-              <span><b>{item.amount}</b><small>{item.price ?? "Market"}</small></span>
-            </div>
-          ))}</div> : <div className="empty"><strong>No open orders</strong><span>Open orders for {symbol} will appear here.</span></div>
+          openOrders.length ? <div className="order-table-wrap"><div className="order-table">
+            <div className="order-row order-header"><span>Pair</span><span>Side / Type</span><span>Amount</span><span>Price</span><span>Filled</span><span>Status</span></div>
+            {openOrders.map((item, index) => {
+              const amountValue = Number(item.amount ?? 0);
+              const filledValue = Number(item.filled ?? 0);
+              const fillPct = amountValue > 0 ? Math.min(100, (filledValue / amountValue) * 100) : 0;
+              const orderSide = String(item.side || "—").toLowerCase();
+              return <div className="order-row" key={item.id || item.external_order_id || index}>
+                <span><b>{item.symbol || "—"}</b></span>
+                <span><b className={orderSide === "buy" ? "up" : "down"}>{String(item.side || "—").toUpperCase()}</b><small>{item.type || "—"}</small></span>
+                <span>{amountValue || item.amount || "—"}</span>
+                <span>{item.price ?? "Market"}</span>
+                <span><b>{filledValue || 0}</b><small>{fillPct.toFixed(0)}%</small></span>
+                <span><em className="status-badge">{item.status || "open"}</em></span>
+              </div>;
+            })}
+          </div></div> : <div className="empty"><strong>No open orders</strong><span>Open orders for {symbol} will appear here.</span></div>
         )}
         {selectedExchangeId && activeTab === "history" && (
-          orderHistory.length ? <div className="data-list">{orderHistory.slice(0, 8).map((item, index) => (
-            <div className="data-row" key={item.id || item.external_order_id || index}>
-              <span><b>{item.symbol}</b><small>{item.side} · {item.type} · {item.status}</small></span>
-              <span><b>{item.filled}/{item.amount}</b><small>{item.average ?? item.price ?? "—"}</small></span>
-            </div>
-          ))}</div> : <div className="empty"><strong>No order history</strong><span>Completed and cancelled orders will appear here.</span></div>
+          orderHistory.length ? <div className="order-table-wrap"><div className="order-table">
+            <div className="order-row order-header"><span>Pair</span><span>Side / Type</span><span>Amount</span><span>Avg. Price</span><span>Filled</span><span>Status</span></div>
+            {orderHistory.slice(0, 12).map((item, index) => {
+              const amountValue = Number(item.amount ?? 0);
+              const filledValue = Number(item.filled ?? 0);
+              const fillPct = amountValue > 0 ? Math.min(100, (filledValue / amountValue) * 100) : 0;
+              const orderSide = String(item.side || "—").toLowerCase();
+              const created = item.created_at || item.createdAt || item.timestamp;
+              const timeLabel = created ? new Date(created).toLocaleString() : "—";
+              return <div className="order-row" key={item.id || item.external_order_id || index}>
+                <span><b>{item.symbol || "—"}</b><small>{timeLabel}</small></span>
+                <span><b className={orderSide === "buy" ? "up" : "down"}>{String(item.side || "—").toUpperCase()}</b><small>{item.type || "—"}</small></span>
+                <span>{amountValue || item.amount || "—"}</span>
+                <span>{item.average ?? item.price ?? "—"}</span>
+                <span><b>{filledValue || 0}</b><small>{fillPct.toFixed(0)}%</small></span>
+                <span><em className="status-badge">{item.status || "—"}</em></span>
+              </div>;
+            })}
+          </div></div> : <div className="empty"><strong>No order history</strong><span>Completed and cancelled orders will appear here.</span></div>
         )}
       </section>
 

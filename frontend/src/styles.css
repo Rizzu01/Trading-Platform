@@ -2295,3 +2295,372 @@ body {
     height: 178px;
   }
 }
+
+
+/* ===== Compatibility map for existing JSX + Figma geometry ===== */
+.terminal {
+  grid-template-rows: 54px 84px 368px 178px 294px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  width: 113px;
+  height: 22px;
+  padding-left: 9px;
+  border-left: 4px solid var(--accent);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.brand span {
+  color: inherit;
+}
+
+.search-box {
+  width: 234px;
+  height: 30px;
+  padding: 0 8px;
+  margin: 0;
+  border-radius: 3px;
+  background: #0A1018;
+}
+
+.search-box input {
+  font-size: 10px;
+}
+
+.search-box span {
+  font-size: 13px;
+}
+
+.top-actions .market-connection {
+  min-width: 92px;
+  height: 21px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 6px;
+  line-height: 1;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: rgba(255,255,255,.015);
+}
+
+.top-actions .market-connection span {
+  grid-column: 2;
+  font-size: 9px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.top-actions .market-connection small {
+  display: none;
+}
+
+.top-actions .theme-select {
+  display: block;
+  width: 16px;
+  min-width: 16px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: transparent;
+  font-size: 0;
+}
+
+.top-actions .icon-button {
+  display: block;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.top-actions .profile {
+  width: 124px;
+  height: 36px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: #0B1119;
+  color: transparent;
+  font-size: 0;
+  position: relative;
+}
+
+.top-actions .profile::after {
+  content: "Connect account";
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.marketbar {
+  grid-template-columns: 24px 101px 125px 65px 65px 82px minmax(0, 1fr) 137px;
+  column-gap: 16px;
+  position: relative;
+}
+
+.marketbar::before {
+  content: "☆";
+  grid-column: 1;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.marketbar::after {
+  content: "●  Live  /  Binance public spot feed";
+  grid-column: 7;
+  justify-self: end;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+.marketbar > .pair,
+.marketbar > .market-price,
+.marketbar > div:not(.market-mode) {
+  min-width: 0;
+}
+
+.marketbar .pair {
+  min-width: 101px;
+}
+
+.marketbar .pair strong {
+  font-size: 17px;
+}
+
+.marketbar .pair small {
+  font-size: 9px;
+}
+
+.marketbar > div:nth-child(4),
+.marketbar > div:nth-child(5),
+.marketbar > div:nth-child(6) {
+  display: flex;
+  flex-direction: column;
+}
+
+.marketbar > div:nth-child(6) b {
+  font-family: "Roboto Mono", ui-monospace, monospace;
+}
+
+.marketbar .market-mode {
+  grid-column: 8;
+}
+
+.markets {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.markets::before {
+  content: "Search markets";
+  position: absolute;
+  top: 43px;
+  left: 12px;
+  color: var(--text-secondary);
+  font-size: 9px;
+  z-index: 2;
+}
+
+.markets::after {
+  content: "Reference snapshot · not live\A USD and INR markets are not supplied by the current adapter.";
+  white-space: pre-line;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 77px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.markets > .panel-title {
+  height: 34px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.markets > .panel-title b {
+  font-size: 11px;
+}
+
+.markets > .panel-title span {
+  font-size: 8px;
+}
+
+.markets > input {
+  width: calc(100% - 24px);
+  height: 40px;
+  margin: 34px 12px 8px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 10px;
+}
+
+.market-filter-row {
+  height: 36px;
+  align-items: center;
+  padding: 0 12px;
+  gap: 17px;
+  border-bottom: 1px solid var(--border);
+}
+
+.market-filter-row button {
+  height: 36px;
+  padding: 0;
+  border-bottom: 2px solid transparent;
+  font-size: 9px;
+}
+
+.market-filter-row button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.market-row {
+  height: 58px;
+  min-height: 58px;
+  padding: 0 10px;
+  grid-template-columns: 1fr 60px;
+}
+
+.markets .market-row:nth-of-type(n+7) {
+  display: none;
+}
+
+.markets .market-row.selected {
+  background: var(--accent-soft);
+}
+
+.chart {
+  height: 368px;
+  min-height: 368px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.chart::after {
+  content: "Historical source plot  •  original candles and volume  •  not live                          Volume  •  Crosshair  •  UTC";
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 8px;
+  white-space: pre;
+}
+
+.chart-heading {
+  height: 34px;
+  min-height: 34px;
+}
+
+.chart .real-chart-shell {
+  height: 300px;
+}
+
+.chart .real-chart-header {
+  height: 30px;
+}
+
+.chart .real-chart-canvas-wrap,
+.chart .real-chart-canvas {
+  height: 270px;
+}
+
+.market-data-panels {
+  grid-area: tape;
+}
+
+.order {
+  height: 546px;
+  min-height: 546px;
+}
+
+.order .panel-title {
+  height: 34px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.order > .segmented {
+  height: 46px;
+  margin: 0;
+  padding: 14px 14px 0;
+}
+
+.order .balance-card {
+  border-bottom: 1px solid var(--border);
+}
+
+.order .primary {
+  font-size: 9px;
+}
+
+.bottom {
+  grid-area: account;
+}
+
+@media (max-width: 1150px) {
+  .terminal {
+    min-width: 980px;
+    grid-template-columns: 200px minmax(460px, 1fr) 280px;
+  }
+
+  .marketbar {
+    grid-template-columns: 24px 92px 115px 60px 60px 74px minmax(0,1fr) 126px;
+  }
+}
+
+@media (max-width: 820px) {
+  .terminal {
+    display: block;
+    min-width: 0;
+  }
+
+  .terminal::after {
+    display: none;
+  }
+
+  .markets,
+  .chart,
+  .order,
+  .market-data-panels,
+  .bottom {
+    height: auto;
+    min-height: 420px;
+  }
+
+  .marketbar {
+    display: grid;
+    grid-template-columns: 24px 1fr 1fr;
+    height: auto;
+    min-height: 84px;
+    padding: 12px;
+  }
+
+  .marketbar::after {
+    display: none;
+  }
+}

@@ -2110,3 +2110,31 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   bottom: 8px;
   left: 12px;
 }
+
+
+.ai-nav-link { color: var(--accent); }
+.ai-copilot-panel {
+  position: fixed; top: 0; right: 0; z-index: 1000; width: min(430px, 94vw); height: 100vh;
+  background: var(--panel, #0d1117); border-left: 1px solid var(--border); box-shadow: -24px 0 60px rgba(0,0,0,.28);
+  display: flex; flex-direction: column; padding: 18px; gap: 14px; overflow: auto;
+}
+.ai-copilot-head { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid var(--border); padding-bottom:14px; }
+.ai-copilot-head > div { display:flex; flex-direction:column; gap:3px; }
+.ai-copilot-head strong { font-size:20px; }
+.ai-copilot-head small, .ai-copilot-head .ai-kicker { color:var(--text-secondary); }
+.ai-kicker { font-size:10px; letter-spacing:.12em; font-weight:700; }
+.ai-copilot-head > button { background:transparent; border:0; color:var(--text-secondary); font-size:24px; cursor:pointer; }
+.ai-context { border:1px solid var(--border); border-radius:12px; padding:12px; }
+.ai-regime { display:flex; flex-direction:column; gap:3px; margin-bottom:12px; }
+.ai-regime span, .ai-regime small, .ai-metric-grid span { color:var(--text-secondary); font-size:11px; }
+.ai-metric-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+.ai-metric-grid div { background:var(--surface, rgba(255,255,255,.03)); border-radius:8px; padding:8px; display:flex; flex-direction:column; gap:3px; }
+.ai-quick { display:flex; gap:6px; flex-wrap:wrap; }
+.ai-quick button { border:1px solid var(--border); background:transparent; color:var(--text-primary); border-radius:999px; padding:7px 10px; font-size:11px; cursor:pointer; }
+.ai-answer { flex:1; min-height:180px; border:1px solid var(--border); border-radius:12px; padding:13px; line-height:1.55; white-space:pre-wrap; overflow:auto; }
+.ai-empty, .ai-loading { color:var(--text-secondary); }
+.ai-error { color:#ff6b6b; border:1px solid rgba(255,107,107,.3); padding:9px; border-radius:8px; font-size:12px; }
+.ai-input { display:flex; gap:8px; }
+.ai-input input { flex:1; min-width:0; }
+.ai-input button { padding:0 15px; }
+.ai-foot { color:var(--text-muted); font-size:10px; line-height:1.4; }

@@ -897,6 +897,26 @@ function App() {
             error={marketType === "spot" ? marketError : "Futures market data is not connected to the terminal yet."}
             theme={theme}
           />
+          <div className="market-data-panels">
+            <section className="panel mini-panel">
+              <div className="panel-title"><b>Order book</b><span>Depth / Trades · ⋯ · −</span></div>
+              <div className="mini-meta"><span>Depth · unavailable</span><span>0.01 / 0.1 / 1 · disabled</span></div>
+              <div className="mini-table-heading"><span>Price (USDT)</span><span>Amount (BTC)</span><span>Total (BTC)</span></div>
+              <div className="availability-card mini-empty">
+                <strong>Order book unavailable</strong>
+                <span>The connected market-data adapter does not currently provide live depth data.</span>
+                <small>Requirement: authenticated/public depth WebSocket stream.</small>
+              </div>
+            </section>
+            <section className="panel mini-panel">
+              <div className="panel-title"><b>Recent trades</b><span>Not supplied · ⋯ · −</span></div>
+              <div className="mini-table-heading"><span>Price (USDT)</span><span>Amount (BTC)</span><span>Time</span></div>
+              <div className="availability-card mini-empty recent">
+                <strong>Recent trades unavailable</strong>
+                <span>The current backend does not expose a normalized live trade stream.</span>
+              </div>
+            </section>
+          </div>
         </section>
 
         <aside className="order panel">
@@ -978,25 +998,6 @@ function App() {
             <span>Market + Limit are implemented by the backend adapter.</span>
           </div>
         </aside>
-      </section>
-
-      <section className="market-data-panels">
-        <section className="panel mini-panel">
-          <div className="panel-title"><b>Order Book</b><span>Level-2</span></div>
-          <div className="availability-card large">
-            <strong>Order book unavailable</strong>
-            <span>The current backend does not expose live bid/ask depth or a depth WebSocket for TradeLab.</span>
-            <small>Backend change required: add an authenticated/public market-depth stream endpoint and normalize bids, asks, size, and spread for the supported exchange adapters.</small>
-          </div>
-        </section>
-        <section className="panel mini-panel">
-          <div className="panel-title"><b>Recent Trades</b><span>Live tape</span></div>
-          <div className="availability-card large">
-            <strong>Recent trades unavailable</strong>
-            <span>The current backend does not expose a normalized live trade stream.</span>
-            <small>Backend change required: add an aggTrade/trade stream endpoint and return price, amount, side/aggressor, and timestamp.</small>
-          </div>
-        </section>
       </section>
 
       <section className="bottom panel">

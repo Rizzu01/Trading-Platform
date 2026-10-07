@@ -65,3 +65,8 @@ small { color: #747b85; font-size: 11px; }
 .auth-head button { border:0; background:transparent; color:#7e858e; font-size:22px; cursor:pointer; }
 .auth-card input { width:100%; border:1px solid #292d33; background:#15181c; color:#eef0f2; padding:11px; border-radius:7px; margin:6px 0; outline:none; }
 .auth-switch { width:100%; border:0; background:transparent; color:#9fbf5a; padding:12px 4px 0; cursor:pointer; font-size:12px; }
+
+.exchange-card select { width:100%; border:1px solid #292d33; background:#15181c; color:#eef0f2; padding:11px; border-radius:7px; margin:6px 0; outline:none; }
+.connected-list { margin-top:14px; display:flex; flex-direction:column; gap:7px; }
+.connected-list div { display:flex; justify-content:space-between; align-items:center; padding:9px 10px; border:1px solid #24282d; border-radius:7px; background:#0d0f12; font-size:12px; }
+.connected-list span { color:#737b84; font-size:11px; }

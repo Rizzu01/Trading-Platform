@@ -49,3 +49,10 @@ small { color: #747b85; font-size: 11px; }
 .bottom { min-height: 220px; border-top: 1px solid #22252a; padding: 16px 24px; }
 .empty { height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; color: #6f767f; }
 .empty strong { color: #b9bec5; font-size: 13px; }
+
+.market-button { width: 100%; border: 0; text-align: left; color: inherit; cursor: pointer; }
+.market-button:hover { background: #14171a; }
+.segmented .sell.active { background: #302020; color: #ef8a8a; }
+.order-message { margin: 10px 0; padding: 9px 10px; border: 1px solid #34382f; background: #151914; color: #aeb69f; border-radius: 6px; font-size: 11px; line-height: 1.4; }
+.status i { background: #6d737b; }
+.status i.online { background: #a9e83d; }

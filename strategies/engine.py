@@ -335,6 +335,8 @@ def backtest(
     fee_bps: float,
     slippage_bps: float,
     market_type: str,
+    risk_percent: float = 1.0,
+    leverage: float = 1.0,
 ) -> dict:
     clean = _candles(candles)
     strategy = get_strategy(strategy_id)
@@ -354,7 +356,11 @@ def backtest(
     entry_fee = 0.0
     trades = []
     equity_curve = []
-    position_pct = 0.25
+    if not 0 < risk_percent <= 10:
+        raise ValueError("risk_percent must be between 0 and 10.")
+    if leverage <= 0 or leverage > 125:
+        raise ValueError("leverage must be between 0 and 125.")
+    position_pct = min(1.0, risk_percent * leverage / 100)
 
     for index in range(1, len(clean)):
         signal = strategy_signal(strategy_id, clean, index - 1).value
@@ -390,7 +396,13 @@ def backtest(
 
             if desired != 0:
                 entry_price = open_price * (1 + slippage_rate if desired > 0 else 1 - slippage_rate)
-                entry_notional = equity * position_pct
+                stop_distance = strategy_signal(strategy_id, clean, index - 1).stop_distance
+                risk_capital = equity * (risk_percent / 100)
+                risk_based_notional = (risk_capital / max(float(stop_distance or (entry_price * 0.01)), entry_price * 1e-6)) * entry_price
+                max_notional = equity * max(leverage, 1.0)
+                entry_notional = min(risk_based_notional, max_notional)
+                if market_type == "spot":
+                    entry_notional = min(entry_notional, equity)
                 entry_fee = _fee(entry_notional, fee_rate)
                 equity -= entry_fee
                 entry_time = candle["timestamp"]

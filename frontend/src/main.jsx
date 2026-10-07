@@ -1050,7 +1050,7 @@ function App() {
           </div>
         )}
 
-        {selectedExchangeId && selectedMarketMatchesMode && dataState.positions && (
+        {selectedExchangeId && selectedMarketMatchesMode && activeTab === "positions" && dataState.positions && (
           <div className="availability-card large"><strong>Positions unavailable</strong><span>{dataState.positions}</span></div>
         )}
         {selectedExchangeId && selectedMarketMatchesMode && activeTab === "positions" && selectedExchange?.market_type === "spot" && (

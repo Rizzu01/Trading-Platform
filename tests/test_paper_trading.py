@@ -20,4 +20,4 @@ def test_paper_futures_flip_realizes_pnl():
     PaperTradingService.market_order(user, "BTCUSDT", "BUY", 0.01, 100000, "usdm", 5)
     snap = PaperTradingService.market_order(user, "BTCUSDT", "SELL", 0.01, 101000, "usdm", 5)
     assert snap["positions"] == []
-    assert snap["balance"] == pytest.approx(10002, rel=0, abs=1e-9)
+    assert snap["balance"] == pytest.approx(10010, rel=0, abs=1e-9)

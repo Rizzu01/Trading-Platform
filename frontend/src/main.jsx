@@ -205,10 +205,10 @@ function App() {
       });
 
       const endpoints = isFutures
-        ? [\`${BINANCE_FUTURES_DATA_BASE}/fapi/v1/klines?\${query.toString()}\`]
+        ? [`${BINANCE_FUTURES_DATA_BASE}/fapi/v1/klines?${query.toString()}`]
         : [
-            \`${BINANCE_DATA_BASE}/api/v3/klines?\${query.toString()}\`,
-            \`https://api.binance.com/api/v3/klines?\${query.toString()}\`,
+            `${BINANCE_DATA_BASE}/api/v3/klines?${query.toString()}`,
+            `https://api.binance.com/api/v3/klines?${query.toString()}`,
           ];
 
       let lastError = null;
@@ -218,7 +218,7 @@ function App() {
           const response = await fetch(endpoint, { signal: controller.signal });
 
           if (!response.ok) {
-            lastError = new Error(\`Market data returned HTTP ${response.status}\`);
+            lastError = new Error(`Market data returned HTTP ${response.status}`);
             continue;
           }
 
@@ -273,10 +273,10 @@ function App() {
 
   useEffect(() => {
     const isFutures = marketType === "usdm";
-    const tickerStreams = MARKETS.map((item) => \`${item.symbol.replace("/", "").toLowerCase()}@ticker\`).join("/");
+    const tickerStreams = MARKETS.map((item) => `${item.symbol.replace("/", "").toLowerCase()}@ticker`).join("/");
     const tickerUrl = isFutures
-      ? \`${BINANCE_FUTURES_STREAM_BASE}/stream?streams=${tickerStreams}\`
-      : \`wss://data-stream.binance.vision/stream?streams=${tickerStreams}\`;
+      ? `${BINANCE_FUTURES_STREAM_BASE}/stream?streams=${tickerStreams}`
+      : `wss://data-stream.binance.vision/stream?streams=${tickerStreams}`;
     const normalizedSymbol = symbol.replace("/", "").toLowerCase();
     let tickerSocket;
     let klineSocket;
@@ -402,7 +402,7 @@ function App() {
         const klineBase = isFutures
           ? BINANCE_FUTURES_STREAM_BASE
           : BINANCE_STREAM_BASE;
-        const klineUrl = \`${klineBase}/${normalizedSymbol}@kline_${timeframe}\`;
+        const klineUrl = `${klineBase}/${normalizedSymbol}@kline_${timeframe}`;
         klineSocket = new WebSocket(klineUrl);
         klineSocket.onopen = () => {
           klineAttempt = 0;

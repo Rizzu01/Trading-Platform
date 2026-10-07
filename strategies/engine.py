@@ -278,6 +278,56 @@ def _fee(notional: float, fee_rate: float) -> float:
     return abs(notional) * fee_rate
 
 
+
+def performance_metrics(initial_capital: float, equity_curve: list[float], trades: list[dict]) -> dict:
+    returns = []
+    for i in range(1, len(equity_curve)):
+        prev = equity_curve[i - 1]
+        cur = equity_curve[i]
+        if prev > 0:
+            returns.append(cur / prev - 1)
+
+    if returns:
+        avg = sum(returns) / len(returns)
+        variance = sum((x - avg) ** 2 for x in returns) / len(returns)
+        std = variance ** 0.5
+        sharpe = (avg / std) * (len(returns) ** 0.5) if std > 0 else 0.0
+        downside = [min(0.0, x) for x in returns]
+        downside_dev = (sum(x * x for x in downside) / len(downside)) ** 0.5
+        sortino = (avg / downside_dev) * (len(returns) ** 0.5) if downside_dev > 0 else 0.0
+    else:
+        sharpe = sortino = 0.0
+
+    pnls = [float(t["pnl"]) for t in trades]
+    wins = [x for x in pnls if x > 0]
+    losses = [x for x in pnls if x < 0]
+    long_pnl = sum(x for x, t in zip(pnls, trades) if t["side"] == "long")
+    short_pnl = sum(x for x, t in zip(pnls, trades) if t["side"] == "short")
+
+    best_run = worst_run = current_win = current_loss = 0
+    for pnl in pnls:
+        if pnl > 0:
+            current_win += 1; current_loss = 0
+        elif pnl < 0:
+            current_loss += 1; current_win = 0
+        else:
+            current_win = current_loss = 0
+        best_run = max(best_run, current_win)
+        worst_run = max(worst_run, current_loss)
+
+    return {
+        "sharpe_ratio": round(sharpe, 4),
+        "sortino_ratio": round(sortino, 4),
+        "average_trade": round(sum(pnls) / len(pnls), 8) if pnls else 0.0,
+        "average_win": round(sum(wins) / len(wins), 8) if wins else 0.0,
+        "average_loss": round(sum(losses) / len(losses), 8) if losses else 0.0,
+        "long_pnl": round(long_pnl, 8),
+        "short_pnl": round(short_pnl, 8),
+        "consecutive_wins": best_run,
+        "consecutive_losses": worst_run,
+        "equity_curve": [round(x, 8) for x in equity_curve],
+    }
+
 def backtest(
     strategy_id: str,
     candles: list[dict],
@@ -384,19 +434,23 @@ def backtest(
     profit_factor = (gross_profit / gross_loss) if gross_loss else None
     total_return = (equity / initial_capital - 1) * 100
 
+    metrics = performance_metrics(initial_capital, equity_curve, trades)
     return {
         "strategy": strategy,
         "market_type": market_type,
         "initial_capital": initial_capital,
         "final_equity": round(equity, 2),
         "return_pct": round(total_return, 2),
+        "roi_pct": round(total_return, 2),
         "max_drawdown_pct": round(max_drawdown, 2),
         "trade_count": len(trades),
         "win_rate_pct": round((len(wins) / len(trades) * 100), 2) if trades else 0.0,
+        "loss_rate_pct": round((len(losses) / len(trades) * 100), 2) if trades else 0.0,
         "profit_factor": round(profit_factor, 2) if profit_factor is not None else None,
         "fees_bps": fee_bps,
         "slippage_bps": slippage_bps,
         "trades": trades[-25:],
+        **metrics,
         "validation": {
             "status": "screening",
             "note": "Screening backtest includes execution fees, slippage, next-bar entries, and mark-to-market drawdown; it is not a guarantee of future profitability.",

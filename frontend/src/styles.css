@@ -32,6 +32,17 @@ small { color: #747b85; font-size: 11px; }
 .market-row { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; padding: 13px 4px; border-bottom: 1px solid #1a1d21; }
 .market-row div { display: flex; flex-direction: column; }
 .market-row em { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-style: normal; font-size: 12px; }
+.real-chart-shell { position: relative; margin-top: 8px; }
+.real-chart-header { display:flex; align-items:center; justify-content:space-between; height:28px; margin-bottom:4px; }
+.real-chart-symbol { display:flex; align-items:center; gap:8px; color:#dfe2e6; }
+.real-chart-symbol span { color:#6f767f; font-size:10px; }
+.real-chart-status { display:flex; align-items:center; gap:6px; color:#737b84; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.real-chart-canvas-wrap { position:relative; height:420px; overflow:hidden; background:#0a0c0f; border:1px solid #181b20; border-radius:2px; }
+.real-chart-canvas { width:100%; height:420px; }
+.real-chart-canvas-wrap .chart-state { z-index:3; }
+.tradingview-attribution { position:absolute; left:8px; bottom:5px; z-index:4; padding:2px 5px; border-radius:3px; background:rgba(10,12,15,.72); color:#59616a; font-size:9px; }
+.tradingview-attribution a { color:#7f8790; text-decoration:none; }
+.tradingview-attribution a:hover { color:#b9ee45; }
 .chart-area { position: relative; height: 420px; margin-top: 8px; overflow: hidden; background: #0a0c0f; border: 1px solid #181b20; }
 .grid { position: absolute; inset: 0; background-image: linear-gradient(#181b20 1px, transparent 1px), linear-gradient(90deg, #181b20 1px, transparent 1px); background-size: 80px 70px; opacity: .65; }
 .chart svg { position: absolute; inset: 0; width: 100%; height: 100%; }
